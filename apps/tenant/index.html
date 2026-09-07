@@ -1,0 +1,1268 @@
+<title>RESTAURANT Build-Out</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+	--bg:#07080c; --panel:#0c0e14; --panel2:#15171f; --line:#252836;
+	--ink:#e8e4dc; --dim:#9a9789; --faint:#6d6b62;
+	--gold:#d4a24c; --sky:#6f92b8; --sage:#7fa07a; --rust:#c46a4a;
+	--paper:#f7f4ed; --paper2:#ece8df; --pink:#161410; --hair:#5c6370;
+	--mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+	--serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+	--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;
+	--tw:60px; --th:52px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+button{font:inherit}
+button:focus-visible,.tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- the stage = the whole screen ---------- */
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,#1a2a3e 0%,#0b1119 46%,#07080c 80%);overflow:hidden;touch-action:none}
+#stage.over #housebox{box-shadow:0 0 0 3px var(--gold),0 0 60px rgba(212,162,76,.25)}
+#dial{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#dial .arc{fill:none;stroke:#2a2f3d;stroke-width:1.5}
+#dial .arc.pass{stroke:var(--sage);stroke-width:2.5}
+#dial .arc.fail{stroke:var(--rust);stroke-width:2.5}
+#dial .arc.open{stroke:var(--gold);stroke-width:2;stroke-dasharray:4 5}
+#dial .rl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;fill:#6d6b62}
+#dial .rl.pass{fill:var(--sage)}#dial .rl.fail{fill:var(--rust)}#dial .rl.open{fill:var(--gold)}
+
+#housebox{position:absolute;border-radius:14px;transition:box-shadow .15s}
+#housebox svg{width:100%;height:100%;display:block}
+#msg{position:absolute;left:50%;transform:translateX(-50%);text-align:center;max-width:46ch;font-size:12px;line-height:1.4;color:var(--dim);pointer-events:none;text-wrap:balance}
+#msg b{color:var(--ink)}
+#msg.leak b{color:var(--sky)}#msg.pass b{color:var(--sage)}#msg.fail b{color:var(--rust)}
+
+/* corners */
+.corner{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px}
+#tl{left:14px;top:12px}
+#tr{right:14px;top:12px;align-items:flex-end}
+#bl{left:14px;bottom:12px}
+#br{right:14px;bottom:12px;align-items:flex-end}
+.brand{font-family:var(--serif);font-size:18px;line-height:1}
+.brand em{color:var(--gold);font-style:italic}
+.brand small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.toggle{display:inline-flex;background:rgba(21,23,31,.9);border:1px solid var(--line);border-radius:999px;padding:2px;width:max-content}
+.toggle button{background:none;border:0;color:var(--dim);font-size:11px;padding:4px 9px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:var(--gold);color:#17140c;font-weight:600}
+button.ghost{background:rgba(21,23,31,.9);border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:999px;cursor:pointer;font-size:11px}
+.stamp{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid var(--line);color:var(--faint);background:rgba(12,14,20,.8);width:max-content}
+.stamp.pass{border-color:var(--sage);color:var(--sage)}
+.stamp.fail{border-color:var(--rust);color:var(--rust)}
+#stamps{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;max-width:180px}
+.stamp.pass,.stamp.fail{padding:2px 3px}
+.score{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.score b{color:var(--ink);font-weight:600}
+.foot{font-size:9.5px;color:var(--faint);max-width:30ch;line-height:1.35}
+.foot a{color:var(--gold)}
+
+/* ---------- the ring of tiles ---------- */
+.tile{position:absolute;z-index:4;width:var(--tw);height:var(--th);margin:0;display:flex;flex-direction:column;justify-content:space-between;border-radius:6px;padding:3px 4px;border:1px solid var(--hair);color:var(--pink);text-align:left;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .15s,box-shadow .15s,opacity .2s;transform:translate(-50%,-50%)}
+.tile:hover{transform:translate(-50%,-50%) scale(1.06);box-shadow:0 8px 18px rgba(0,0,0,.5);z-index:6}
+.tile.ready{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(212,162,76,.45)}
+.tile.sel{box-shadow:0 0 0 2px #fff,0 8px 18px rgba(0,0,0,.5)}
+.tile .z{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.7;line-height:1}
+.tile .sym{font-family:var(--serif);font-size:19px;line-height:.9;letter-spacing:-.01em}
+.tile .pic{display:block;height:24px;width:28px;margin:-1px 0 0}
+.grid .tile .pic{height:30px;width:34px}
+@media (max-width:760px){.tile .pic{height:19px;width:22px}}
+#peek .pic{display:block;width:44px;height:38px;margin-bottom:2px}
+.tile .nm{font-size:7.5px;line-height:1.1;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .lk{position:absolute;top:3px;right:4px;font-size:7px;opacity:.75}
+.tile.spent{background:var(--paper2)!important;color:#8a8578;border-color:#c9c3b5;cursor:default}
+.tile.spent::after{content:"✓";position:absolute;right:4px;bottom:3px;font-size:11px;color:#7fa07a}
+.tile.covered{opacity:.4;cursor:not-allowed}
+.tile.burned::after{content:"✗";position:absolute;right:4px;bottom:3px;font-size:11px;color:#c46a4a;font-weight:700}
+.tile.burned{border-color:#c46a4a}
+.tile.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translate(-50%,-50%)}20%{transform:translate(calc(-50% - 5px),-50%)}40%{transform:translate(calc(-50% + 5px),-50%)}60%{transform:translate(calc(-50% - 4px),-50%)}80%{transform:translate(calc(-50% + 4px),-50%)}}
+#ghost{position:fixed;z-index:50;pointer-events:none;width:var(--tw);height:var(--th);display:none;opacity:.95}
+#ghost .tile{position:static;transform:rotate(-4deg);box-shadow:0 18px 40px rgba(0,0,0,.6)}
+
+/* ---------- the peek (the card, anchored to the tile) ---------- */
+#peek{position:fixed;z-index:40;width:19rem;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;display:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#peek.on{display:block}
+#peek .bar{height:3px;width:30px;border-radius:99px;background:var(--gold);margin-bottom:8px}
+#peek .kick{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin:0 0 2px}
+#peek .sym{font-family:var(--serif);font-size:30px;line-height:1;margin:0;color:var(--gold)}
+#peek h2{font-family:var(--serif);font-size:17px;font-weight:400;margin:3px 0 1px;line-height:1.2}
+#peek .meta{font-size:10px;color:var(--faint);margin:0 0 8px}
+#peek .law{font-size:13.5px;line-height:1.4;margin:0 0 9px;color:var(--ink)}
+.blk{border-left:3px solid var(--sage);background:#10151c;padding:7px 9px;margin-bottom:7px}
+.blk h3{margin:0 0 3px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:var(--sage)}
+.blk p{margin:0;font-size:11.5px;color:var(--dim);line-height:1.45}
+.blk a{color:var(--gold)}
+.blk.fail{border-left-color:var(--rust)}.blk.fail h3{color:var(--rust)}
+.blk.spec{border-left-color:var(--sky)}.blk.spec h3{color:var(--sky)}
+.blk.hot{border-left-color:var(--gold);background:#14110c}.blk.hot h3{color:var(--gold)}.blk.hot p{color:var(--ink)}
+.grade{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);margin:1px 0 6px}
+.grade b{font-family:var(--sans);font-size:11px}
+.grade.g1{border-color:var(--sage);color:var(--sage)}.grade.g2{border-color:var(--sky);color:var(--sky)}.grade.g3,.grade.g5{border-color:var(--rust);color:var(--rust)}
+#peek .src{font-size:10px;color:var(--faint);margin:0 0 10px;line-height:1.4}
+.eat{background:var(--gold);border:0;color:#17140c;font-weight:700;padding:7px 13px;border-radius:999px;cursor:pointer;font-size:12px}
+#peek .close{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--faint);font-size:16px;cursor:pointer;padding:2px 6px}
+
+/* ---------- the chart overlay (the table, read-only) ---------- */
+#chart{position:fixed;inset:0;z-index:30;display:none;background:rgba(7,8,12,.8);align-items:center;justify-content:center;padding:20px}
+#chart.on{display:flex}
+.paper{position:relative;background:var(--paper);border-radius:10px;padding:14px 14px 12px;color:var(--pink);max-width:min(66rem,100%);max-height:100%;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+.paper h2{margin:0 0 10px;text-align:center;font-size:10px;font-weight:500;letter-spacing:.28em;text-transform:uppercase;color:#6d6b62}
+.paper .close{position:absolute;right:8px;top:6px;background:none;border:0;color:#6d6b62;font-size:18px;cursor:pointer}
+.grid{display:grid;gap:2px}
+.fam{padding:0 2px 6px;text-align:center}
+.fam b{display:block;font-size:11px;font-weight:600}
+.fam span{display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#6d6b62}
+.rowlab{display:flex;align-items:center;justify-content:flex-end;padding-right:5px}
+.rowlab span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#6d6b62;white-space:nowrap}
+.grid .tile{position:static;transform:none;width:auto;height:auto;min-height:3.4rem;cursor:default}
+.grid .tile:hover{transform:none;box-shadow:none}
+.grid .tile .nm{white-space:normal;font-size:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 4px 0;font-size:9.5px;color:#6d6b62}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px;border:1px solid var(--hair)}
+
+/* ---------- done ---------- */
+#done{display:none;position:fixed;inset:0;z-index:45;background:rgba(7,8,12,.88);align-items:center;justify-content:center;text-align:center;padding:24px}
+#done.on{display:flex}
+#done h2{font-family:var(--serif);font-weight:400;font-size:36px;margin:0 0 6px;color:#fff;text-wrap:balance}
+#done .stars{font-size:26px;color:var(--gold);letter-spacing:.2em;margin-bottom:8px}
+#done p{color:var(--dim);max-width:44ch;margin:0 auto 14px;line-height:1.5}
+#done p b{color:var(--ink)}
+.drip{animation:drip 1.1s ease-in forwards}
+@keyframes drip{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(60px)}}
+.bandlab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;fill:#9a9789}
+@media (max-width:760px){:root{--tw:44px;--th:40px}.tile .z{font-size:10px}#dial .rl{display:none}.tile .sym{font-size:15px}.tile .nm{display:none}.brand small,.foot{display:none}.toggle button{font-size:10px;padding:3px 7px}#stamps{display:none}}
+@media (prefers-reduced-motion:reduce){.tile,.drip,.tile.shake{animation:none;transition:none}}
+</style>
+
+<div id="stage" aria-label="The restaurant, with every part around it">
+	<svg id="dial" aria-hidden="true"></svg>
+	<div id="housebox">
+		<svg viewBox="0 0 800 560" id="scene" role="img" aria-label="A restaurant being built inside a leased retail bay, in layers">
+			<defs>
+				<linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1119"/><stop offset="1" stop-color="#16243a"/></linearGradient>
+				<linearGradient id="soilg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2d22"/><stop offset="1" stop-color="#17120e"/></linearGradient>
+				<filter id="glow"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#f0d9a0" flood-opacity=".9"/></filter>
+				<pattern id="blockpat" width="32" height="16" patternUnits="userSpaceOnUse"><rect width="32" height="16" fill="#8d8b86"/><path d="M0,0 H32 M0,8 H32 M16,0 V8 M0,8 V16 M32,8 V16" stroke="#6b6963" stroke-width="1" fill="none"/></pattern>
+				<pattern id="tilepat" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#c8bfae"/><path d="M0,0 H20 V20" stroke="#ada496" stroke-width="1" fill="none"/></pattern>
+			</defs>
+			<rect x="0" y="0" width="800" height="462" fill="url(#skyg)"/>
+			<rect x="0" y="462" width="800" height="98" fill="url(#soilg)"/>
+			<g id="SEC"></g>
+			<g id="ELEV" style="display:none"></g>
+			<g id="leaks"></g>
+			<g id="bands"></g>
+		</svg>
+	</div>
+	<p id="msg">Drag a part into the space. Hover a tile to read it. <b>Gold ring = ready now.</b></p>
+
+	<div class="corner" id="tl">
+		<div class="brand">RESTAURANT <em>Build-Out</em><small>Treasure Coast tenant space &middot; crew edition</small></div>
+		<div class="toggle" role="tablist" aria-label="View">
+			<button data-view="cutaway" class="on">Cutaway</button>
+			<button data-view="street">Dining room</button>
+			<button data-view="inspector">Inspector</button>
+		</div>
+	</div>
+	<div class="corner" id="tr"><div id="stamps"></div></div>
+	<div class="corner" id="bl">
+		<span class="score" id="score">Gates 0/10 &middot; Leaks 0 &middot; Failed gates 0</span>
+		<div style="display:flex;gap:6px"><button class="ghost" id="reset">Start over</button><button class="ghost" id="showchart">The table</button></div>
+	</div>
+	<div class="corner" id="br"><span class="foot">Gates follow the code chain a Florida restaurant actually walks: <a href="https://www2.myfloridalicense.com/hotels-restaurants/licensing/plan-review/" target="_blank" rel="noopener">DBPR plan review</a>, FBC 8th Ed., NFPA 96 and the fire marshal. A training model, not a permit.</span></div>
+</div>
+
+<div id="peek" role="dialog" aria-label="Part card"><button class="close" id="peekclose" aria-label="Close">×</button><div id="peekbody"></div></div>
+<div id="chart" role="dialog" aria-label="Periodic Table of Restaurant Parts"><div class="paper"><button class="close" id="chartclose" aria-label="Close">×</button><h2>Periodic Table of Restaurant Parts — the data behind the ring</h2><div class="grid" id="table"></div><div class="legend" id="legend"></div></div></div>
+<div id="done"><div><div class="stars" id="d-stars"></div><h2 id="d-title"></h2><p id="d-body"></p><button class="eat" id="again">Open another one</button></div></div>
+<div id="ghost"></div>
+
+<script>
+/* ============================================================
+   DATA — the table. Hue lives on the family. Order lives on
+   `needs`. If you write  if(part.id==='block')  the engine is dead.
+   ============================================================ */
+const FAMS = [
+	{id:'pp', sym:'Pp', label:'Paper', q:'Is it legal, and who signed?', hue:'#efe6cf', hueTo:'#d7c79b', block:1},
+	{id:'sh', sym:'Sh', label:'Shell', q:'What did you take over?', hue:'#cdb497', hueTo:'#8f6f4b', block:2},
+	{id:'wa', sym:'Wa', label:'Waste', q:'Where does the dirty water go?', hue:'#d9dee4', hueTo:'#94a0ad', block:3},
+	{id:'gs', sym:'Gs', label:'Gas', q:'What feeds the flame?', hue:'#f0b884', hueTo:'#c9762a', block:3},
+	{id:'pw', sym:'Pw', label:'Power', q:'Where does the power go?', hue:'#f0d98a', hueTo:'#c9a83a', block:3},
+	{id:'hd', sym:'Hd', label:'Hood', q:'Where do the smoke and the grease go?', hue:'#bcc9d6', hueTo:'#6f8296', block:4},
+	{id:'fi', sym:'Fi', label:'Fire', q:'What puts it out, and how do they get out?', hue:'#f2a8a8', hueTo:'#c2413a', block:4},
+	{id:'cd', sym:'Cd', label:'Cold', q:'What keeps it cold?', hue:'#b9dcd2', hueTo:'#6fb8a6', block:5},
+	{id:'ac', sym:'Ac', label:'Access', q:'Can everybody get in and use it?', hue:'#c9bee6', hueTo:'#8b79bd', block:5},
+	{id:'fn', sym:'Fn', label:'Finish', q:'Can it be cleaned?', hue:'#e2c9b8', hueTo:'#bd9273', block:5},
+];
+const ROWS = [
+	{n:1,  code:'PR',  label:'Plan review', sees:'Three desks said yes before one wall moved: zoning, the state, and the building department.'},
+	{n:2,  code:'UG',  label:'Underground', sees:'Two waste systems under one slab — grease on one, sanitary on the other — open, sloped and holding a test.'},
+	{n:3,  code:'IN',  label:'Interceptor', sees:'A grease interceptor outside, sized, with a lid a pump truck can reach — and a backflow preventer on the water.'},
+	{n:4,  code:'RI',  label:'Rough-in', sees:'Open walls: pipe, wire, gas, and wood behind every place a heavy thing will hang.'},
+	{n:5,  code:'HD',  label:'Hood & duct', sees:'A Type I hood and a grease duct welded liquid-tight, before anything covers it.'},
+	{n:6,  code:'FS',  label:'Fire suppression', sees:'A UL 300 system that drops the gas, the power and the fans when it fires — proven on a test.'},
+	{n:7,  code:'AC',  label:'Above ceiling', sees:'Make-up air, sprinkler heads and alarm devices — the last look before the grid goes in.'},
+	{n:8,  code:'FE',  label:'Finish & equipment', sees:'Surfaces that can be cleaned, a restroom anyone can use, and every food drain broken by air.'},
+	{n:9,  code:'FM',  label:'Fire marshal final', sees:'Doors that open under a push, lights that stay on, and a Class K on the wall.'},
+	{n:10, code:'OP',  label:'Opening inspection', sees:'The state walks it once more, the licence prints, and the building department signs the CO.'},
+];
+const GRADES = {
+	'1':['✓','Robust','In the code, the rule, or the state form.'],
+	'2':['~','Range','Real, but the number is on your plans or your utility’s ordinance. Confirm.'],
+	'3':['⚠','Contested','Jurisdictions differ. Both shown.'],
+	'4':['◈','Model','Simplified for the sim.'],
+	'5':['✗','Cartoon','The common lie. It looked right until the gate.'],
+};
+const SRC_D = 'Florida DBPR, Division of Hotels and Restaurants — Plan Review (61C-1.002, 61C-4.010)';
+const SRC_M = 'Florida Building Code, Mechanical, 8th Ed., Ch. 5 (Type I hoods and grease ducts) / NFPA 96';
+const SRC_F = 'Florida Fire Prevention Code / IFC 904.13, NFPA 96, NFPA 17A, UL 300';
+const SRC_H = 'Florida DOH food establishment plan review guide (construction standards)';
+const SRC_P = 'Florida Building Code, Plumbing, 8th Ed., Ch. 10 (traps, interceptors, separators)';
+const SRC_A = '2010 ADA Standards as adopted in FBC Accessibility, 8th Ed.';
+const HOUSE_URL = '../../../HOUSE/apps/cbs/index.html';
+const ROOF_URL = '../../../ROOF/apps/shingle/index.html';
+const PARTS = [
+
+	/* ================= ROW 1 — before anybody swings a hammer ================= */
+	{id:'zo', z:1, sym:'Zo', icon:'permit', name:'Change of use, parking and capacity fees', short:'Change of use', fam:'pp', row:1, needs:[],
+		law:'A shop that sells shoes and a shop that sells dinner are two different buildings on paper.',
+		spec:'Retail is Group M. A restaurant with 50 or more people is Group A-2 — assembly. Changing the group is a change of occupancy: parking count recalculated, occupant load recalculated, and the water and sewer capacity charge recalculated, because a restaurant uses several times the water a store did. Ask zoning and ask the utility, in writing, before you sign the lease.',
+		fail:'The lease is signed, the bay is gutted, and the utility sends a five-figure capacity bill nobody budgeted. That money does not come out of the build — it comes out of you.',
+		grade:'2', src:'FBC Existing Building change-of-occupancy provisions; the dollar figure is your county utility’s current impact/ERC schedule — get it in writing.', layer:'permit'},
+	{id:'dp', z:2, sym:'Dp', icon:'permit', name:'DBPR plan review package', short:'DBPR plan review', fam:'pp', row:1, needs:['zo'],
+		law:'Florida licenses the restaurant, not just the building. The state reads your floor plan before the county does.',
+		spec:'Plan review is required when a food service establishment is newly built, converted from another use, remodeled, or reopened after 18 months closed. Submit the application, a scale floor plan with every piece of equipment labelled, and a sample menu. Allow about 30 days.',
+		fail:'Build first and the state can make you move a sink you already tiled around. Everything after that is demolition you pay for twice.',
+		grade:'1', src:SRC_D+' — “Newly built · Converted from another use · Remodeled · Re-opened after being closed at least 18 months.”', layer:'permit'},
+	{id:'bp', z:3, sym:'Bp', icon:'permit', name:'Building permit and the sub-permits', short:'Permit + subs', fam:'pp', row:1, needs:['dp'],
+		law:'One restaurant, six permits. Miss one and the whole job stops on its inspection.',
+		spec:'Master building permit with sealed plans, plus separate permits pulled by the licensed subs: plumbing, electrical, mechanical, gas, fire suppression (the hood system), and fire alarm or sprinkler if the building has them. Fire prevention reviews the plans alongside the building department.',
+		fail:'The hood shows up on a truck with no fire-suppression permit. The fire marshal will not inspect a system that was never permitted, and the hood cannot be covered until he does.',
+		grade:'1', src:'Local building division commercial permitting; fire suppression is a separately permitted system under the Florida Fire Prevention Code.', layer:'permit'},
+	{id:'g1', icon:'inspector', z:4, sym:'G1', name:'Plan review approved', short:'Plan review', fam:'pp', row:1, gate:1, needs:['bp'],
+		law:'Three desks say yes before one wall moves.',
+		spec:'Zoning cleared the use and the parking. DBPR approved the food plan. The building department and fire prevention approved the construction plans and issued the permits.',
+		fail:'Starting without them is a stop-work order and a double permit fee — on a lease that is already running rent.',
+		grade:'1', src:SRC_D+'; local building division plan review.', layer:'gate1', lit:['permit']},
+
+	/* ================= ROW 2 — everything under the slab ================= */
+	{id:'dm', z:5, sym:'Dm', link:true, name:'Demo and saw-cut the slab', short:'Demo & saw-cut', fam:'sh', row:2, needs:['g1'],
+		law:'You are not building a restaurant. You are opening a floor and putting one inside somebody else’s building.',
+		spec:'Strip the old tenant out. Confirm what is structural before you cut — in a strip centre the demising walls and any interior columns are holding the roof up. Saw-cut and trench the slab on the lines the plumbing plan shows. Protect the neighbours: they are still open for business on the other side of that wall. (The shell itself gets built in <a href="'+HOUSE_URL+'" target="_blank" rel="noopener">HOUSE Block</a>.)',
+		fail:'Cut a post-tension cable or a structural slab beam and the job stops for an engineer’s repair letter. In a tilt-wall or PT slab, X-ray or GPR the cut lines first.',
+		grade:'2', src:'Structural condition is on the existing building’s drawings and an engineer’s letter — not in any code book.', layer:'shell'},
+	{id:'gw', z:6, sym:'Gw', name:'Under-slab waste — grease side and sanitary side', short:'Under-slab waste', fam:'wa', row:2, needs:['dm'],
+		law:'A restaurant has two sewers under one floor. Mix them and you contaminate the clean one forever.',
+		spec:'Everything that touches food or grease — three-compartment sink, prep sink, mop sink, wok and kettle drains, floor sinks under the cook line, dishmachine — runs on the grease line to the interceptor. Toilets, lavatories and hand sinks run on the sanitary line straight to the main. Both bedded, sloped a quarter inch per foot, cleanouts where the plan shows them, capped for the test.',
+		fail:'Tie the toilets into the grease line and you have made a grease interceptor full of sewage that a pump truck now has to handle. Tie the sinks into the sanitary line and the utility catches it at the FOG inspection.',
+		grade:'1', src:SRC_P+'; test per FBC Plumbing 312.', layer:'uwaste'},
+	{id:'fd', z:7, sym:'Fd', name:'Floor sinks and floor drains', short:'Floor sinks', fam:'wa', row:2, needs:['gw'],
+		law:'A floor sink is not a drain. It is the open cup that catches the air gap.',
+		spec:'Floor sinks set flush and level under the equipment that has to drain indirectly — dishmachine, ice machine, walk-in coolers, steam equipment, prep sinks. Floor drains in the dish area and the mop area, floor sloped to them. Set the rims flush now: they are cast into the pour and nobody moves them later.',
+		fail:'One floor sink an inch high or six inches off the equipment and every indirect drain above it becomes a hose running across the floor — a DBPR violation on opening day.',
+		grade:'1', src:SRC_H+' — indirect waste must terminate over a receptor with an air gap.', layer:'floorsink'},
+	{id:'g2', icon:'inspector', z:8, sym:'G2', name:'Underground plumbing inspection', short:'Underground insp.', fam:'pp', row:2, gate:2, needs:['fd'],
+		law:'Everything under that floor is buried forever. He sees it once.',
+		spec:'Trenches open, both systems visible and separate, water or air test holding, cleanouts accessible, floor sink rims set to finished floor.',
+		fail:'Poured over before he came? Rent a saw and start again — and this time the neighbours hear it for two days.',
+		grade:'1', src:'Local plumbing underground rough inspection; FBC Plumbing 312.', layer:'gate2', lit:['uwaste','floorsink']},
+
+	/* ================= ROW 3 — the interceptor and the water service ================= */
+	{id:'gi', z:9, sym:'Gi', name:'Grease interceptor, outside and sized', short:'Grease interceptor', fam:'wa', row:3, needs:['g2'],
+		law:'Grease is the only thing in this building the city will actually shut you down over.',
+		spec:'An in-ground interceptor outside, on the grease line, sized from the fixtures and the seats — commonly 1,000 to 1,500 gallons for a full-service kitchen, but the size comes from your utility’s ordinance, not from a rule of thumb. Two chambers, a sample point downstream, traffic-rated lids where a truck can drive, and clear space for the pump hose. Under-sink units only where the utility allows them.',
+		fail:'Undersize it and you are pumping weekly. Put it where a truck cannot reach it and you are pumping by hand. Skip it and the utility can refuse to turn the meter on.',
+		grade:'2', src:SRC_P+' §1003; the actual size and the pumping schedule come from the county utility’s FOG ordinance — call them.', layer:'grease'},
+	{id:'bf', z:10, sym:'Bf', name:'Water service, meter and backflow preventer', short:'Meter & backflow', fam:'wa', row:3, needs:['g2'],
+		law:'A restaurant can push dirty water backwards into the street main. The utility will not allow that.',
+		spec:'Water service and meter sized for the fixture count — the store you took over probably had a small one. A reduced-pressure-zone backflow preventer at the service, tested and certified by a licensed tester, with the certificate filed. Separate protection on the mop sink hose bibb, the carbonator, and any chemical dispenser.',
+		fail:'No backflow certificate on file and the utility will not release the meter. No meter, no water. No water, no inspection, no opening.',
+		grade:'1', src:'FBC Plumbing backflow provisions; certification requirements are your utility’s cross-connection control program.', layer:'water'},
+	{id:'g3', icon:'inspector', z:11, sym:'G3', name:'Interceptor and backflow inspection', short:'Interceptor insp.', fam:'pp', row:3, gate:3, needs:['gi','bf'],
+		law:'The utility owns the pipe at the property line. They inspect their side of it.',
+		spec:'Interceptor set on bedding, plumbed, watertight, lids at grade, sample point accessible. Backflow device installed right side up and tested. Some jurisdictions roll this into the site plumbing inspection — Indian River County Utilities still has to accept it before the meter runs.',
+		fail:'A device installed backwards passes nothing. A lid two inches under the asphalt gets found by a pump truck driver at 6 a.m.',
+		grade:'4', src:'Modelled as its own gate. Confirm the sequence with your utility and the plumbing inspector on the first job.', layer:'gate3', lit:['grease','water']},
+
+	/* ================= ROW 4 — open walls ================= */
+	{id:'wl', z:12, sym:'Wl', name:'Walls, soffits and the walk-in enclosure', short:'Frame the walls', fam:'sh', row:4, needs:['g3'],
+		law:'The rooms are drawn on the plan the state approved. Move one and you re-open plan review.',
+		spec:'Metal stud partitions on the approved layout, moisture-resistant board where it gets wet, soffits framed for the hood and the ductwork, a curb and a level pad for the walk-in. Door openings framed at the sizes the accessibility plan calls for, not the sizes the studs happened to land on.',
+		fail:'Slide the restroom wall four inches to make the dining room work and you have just deleted the wheelchair turning space. That wall comes back out.',
+		grade:'1', src:'Approved architectural plans; FBC Accessibility for clear widths.', layer:'walls'},
+	{id:'bl', z:13, sym:'Bl', name:'Blocking — hood hangers, shelves, grab bars', short:'Blocking', fam:'sh', row:4, needs:['wl'],
+		law:'Anything heavy that hangs on a wall needs wood in the wall before the wall closes.',
+		spec:'Steel or plywood backing for: hood hangers (the hood is hung from structure above, but the wall panels and shelves are not), wall-mounted hand sinks, stainless shelving, the mop sink and its hose rack, TV and menu-board brackets — and both grab bars in every accessible restroom stall, at the height the bars will actually sit.',
+		fail:'No blocking behind the grab bar means a toggle bolt in half-inch drywall. It passes the eye and fails the person leaning on it. The fix is cutting open a finished, tiled wall.',
+		grade:'1', src:SRC_A+' §609 grab bars must resist 250 lb; blocking is how you get there.', layer:'blocking'},
+	{id:'el', z:14, sym:'El', name:'Panel, feeders and branch circuits', short:'Power', fam:'pw', row:4, needs:['wl'],
+		law:'The store you took over had four circuits and a cash register. You are about to plug in a kitchen.',
+		spec:'Service and panel sized for the equipment schedule — hood fans, make-up air, walk-in compressors, dishmachine booster heater, fryers, water heater. Dedicated circuits where the equipment cut sheets call for them. GFCI where required. Conduit and boxes roughed to the equipment plan, whips left where each machine lands. Emergency lighting and exit sign circuits roughed now.',
+		fail:'Discover at equipment set that the existing service will not carry the load and you are back to the utility for a new transformer — a lead time measured in months, on a lease that charges rent every one of them.',
+		grade:'2', src:'NFPA 70 / FBC Electrical; the load is on your equipment schedule, not in a book.', layer:'power'},
+	{id:'rp', z:15, sym:'Rp', name:'Rough plumbing — every sink and the water heater', short:'Rough plumbing', fam:'wa', row:4, needs:['wl'],
+		law:'A restaurant is a building with an argument about sinks. Count them on the approved plan, not from memory.',
+		spec:'Hot and cold to: the three-compartment sink with a drainboard on each end, the prep sink, the mop or service sink, and a hand-wash sink in every food prep, warewashing and service area plus the restrooms. Hot water to every hand sink under pressure. Water heater sized for the dishmachine and the fixtures; if the dishmachine needs 180°F, that is a booster.',
+		fail:'A hand sink the cook cannot reach without walking away from the line is a violation on every routine inspection you will ever get. And a three-compartment sink is never the hand sink.',
+		grade:'1', src:SRC_H+' — hot and cold running water under pressure to all handwash sinks; three-compartment sink with drainboards each end.', layer:'roughp'},
+	{id:'gl', z:16, sym:'Gl', name:'Gas line and pressure test', short:'Gas & test', fam:'gs', row:4, needs:['wl'],
+		law:'The gas line is the one system in the building that fails loudly.',
+		spec:'Line sized for the total appliance input, run and supported per code, a shutoff at each appliance, a quick-disconnect and a restraining cable on anything on casters. The whole system pressure-tested and held for the inspector. The electric gas valve for the fire-suppression interlock gets installed on this line — order it now, it is a long-lead part.',
+		fail:'Undersize the line and every burner on the line drops when the fryers recover. Forget the electric valve and the fire-suppression gate fails on a part you cannot buy locally.',
+		grade:'1', src:'FBC Fuel Gas; NFPA 54 sizing tables. Appliance inputs are on the cut sheets.', layer:'gas'},
+	{id:'g4', icon:'inspector', z:17, sym:'G4', name:'Rough-in inspection', short:'Rough-in insp.', fam:'pp', row:4, gate:4, needs:['bl','el','rp','gl'],
+		law:'Four trades, one open wall. He sees all of it once.',
+		spec:'Framing, blocking, plumbing rough, electrical rough, gas under test — all visible, nothing covered.',
+		fail:'Board it before he comes and you own a wall full of drywall screws you now have to pull.',
+		grade:'1', src:'Local building division combination rough inspection.', layer:'gate4', lit:['walls','blocking','power','roughp','gas']},
+
+	/* ================= ROW 5 — the hood and the grease duct ================= */
+	{id:'hb', z:18, sym:'Hb', name:'Type I hood set', short:'Type I hood', fam:'hd', row:5, needs:['g4'],
+		law:'Grease-producing equipment gets a Type I hood. A Type II hood over a fryer is a decoration.',
+		spec:'Type I hood over the fryers, griddle, range, charbroiler and any appliance that produces grease-laden vapour. Hung from structure, level, overhanging the cooking surface on every open side per the listing, with listed grease filters set at the angle they are listed for and a grease cup under them. Clearance to combustible construction per the hood’s listing.',
+		fail:'A hood that does not overhang the fryer captures the smoke you can see and misses the grease you cannot. It also fails on the tape measure.',
+		grade:'1', src:SRC_M+' — Type I hoods required over appliances producing grease-laden vapors.', layer:'hood'},
+	{id:'gd', z:19, sym:'Gd', name:'Grease duct, continuous liquid-tight weld', short:'Welded duct', fam:'hd', row:5, needs:['hb'], altOf:'sc',
+		law:'The duct is a pipe full of burning grease. There are no seams in it. None.',
+		spec:'16-gauge steel or 18-gauge stainless. Every joint and every seam a continuous liquid-tight weld or braze on the external surface. No screws, rivets or fasteners penetrating the duct. Sloped at least a quarter inch per foot back to the hood on runs up to 75 feet. Cleanouts at every change of direction and at the intervals the code sets, accessible after the ceiling closes.',
+		fail:'None — this is the way it is done. It costs more, it takes a welder, and it is the difference between a grease fire in a duct and a grease fire in a building.',
+		grade:'1', src:SRC_M+': “All joints and seams shall be made with continuous liquid-tight weld or braze made of the external surface.”', layer:'duct'},
+	{id:'sc', z:19, sym:'Gd', name:'Screw and mastic the duct seams', short:'Screwed duct', fam:'hd', row:5, needs:['hb'], trap:true, altOf:'gd',
+		law:'It is sheet metal. Sheet metal gets screwed and sealed. That is how every other duct in the building is built.',
+		spec:'S-and-drive joints, sheet-metal screws, high-temp mastic over the seams, wrapped so nobody sees it. It holds air. It passes a smoke test. From the dining room, from the kitchen, and from under the ceiling grid it looks exactly like the welded one.',
+		fail:'The hood inspection finds a screw head inside the duct and a seam that is not welded. The entire duct comes out — after the ceiling grid, the sprinkler drops and the make-up air are already in the way of the crane.',
+		grade:'5', src:'Not a grease duct. That is the point. ' + SRC_M, layer:'ducttape'},
+	{id:'dw', z:20, sym:'Dw', name:'Duct enclosure and clearance to combustibles', short:'Duct wrap', fam:'hd', row:5, needs:['gd|sc'],
+		law:'The duct gets hot enough to light what it touches. So either move it away, or wrap it.',
+		spec:'Clearance to combustible construction per code, or a listed grease-duct wrap installed exactly to its listing — right number of layers, right overlap, right pinning, no compression — or a rated shaft where the duct passes through a floor or a rated assembly. Photograph the wrap before it is covered; the inspector who comes later cannot see it.',
+		fail:'A wrap installed at the wrong overlap is a wrap that failed its own listing. Nobody can tell once the ceiling is in, which is exactly why the inspector wants it now.',
+		grade:'1', src:SRC_M+'; wrap systems per their UL listing and the manufacturer’s installation instructions.', layer:'wrap'},
+	{id:'ef', z:21, sym:'Ef', link:true, name:'Exhaust fan, curb, and where it blows', short:'Exhaust fan', fam:'hd', row:5, needs:['dw'],
+		law:'Everything the kitchen makes comes out of one hole in the roof. Somebody lives downwind of it.',
+		spec:'Listed upblast fan on a curb, hinged so it can be swung for cleaning, with a grease box. Discharge above the roof and away from air intakes, operable openings and property lines by the code distances. Roof penetration flashed and warrantable — this is somebody else’s roof and somebody else’s warranty (<a href="'+ROOF_URL+'" target="_blank" rel="noopener">ROOF Shingle</a> is that penetration’s five gates). Not inside a duct, not under the hood.',
+		fail:'Terminate it next to the neighbour tenant’s fresh-air intake and you will meet them, the landlord, and code enforcement in the same week.',
+		grade:'1', src:SRC_M+' exhaust outlet termination clearances; NFPA 96.', layer:'fan'},
+	{id:'g5', icon:'inspector', z:22, sym:'G5', name:'Hood and duct inspection', short:'Hood insp.', fam:'pp', row:5, gate:5, needs:['ef'], failsIf:['sc'],
+		law:'The one inspection where a flashlight and a mirror decide whether your ceiling stays up.',
+		spec:'Hood set and hung, duct welds visible, slope checked, cleanouts accessible, wrap or clearance verified, fan and termination checked — before any ceiling, soffit or shaft closes it in.',
+		fail:'Close the ceiling first and you open the ceiling again. Every time.',
+		grade:'1', src:SRC_M+'; local mechanical and fire inspection.', layer:'gate5', lit:['hood','duct','ducttape','wrap','fan']},
+
+	/* ================= ROW 6 — the system that saves the building ================= */
+	{id:'an', z:23, sym:'An', name:'Wet-chemical system, UL 300, a nozzle per appliance', short:'Suppression', fam:'fi', row:6, needs:['g5'],
+		law:'Modern frying oil burns hotter than the old systems were built for. UL 300 is the standard written after those systems lost.',
+		spec:'A pre-engineered wet-chemical system listed to UL 300, designed to NFPA 17A and NFPA 96. Nozzles selected and aimed for each specific appliance, plus the hood plenum, the filters and the duct. The design is by appliance model — change a fryer for a wider one later and the system has to be redesigned.',
+		fail:'A dry-chemical system from the 1990s is not UL 300. Insurers and fire marshals both know the difference, and one of them will not renew you.',
+		grade:'1', src:SRC_F+' — IFC 904.13: systems tested to UL 300, listed and labeled for the application.', layer:'ansul'},
+	{id:'fl', z:24, sym:'Fl', name:'Fusible links and the manual pull', short:'Links & pull', fam:'fi', row:6, needs:['an'],
+		law:'Two ways to fire it: the heat does it, or a human does it on the way out the door.',
+		spec:'Detection links over each appliance and in the duct collar, at the temperature ratings the design calls for. A manual pull station on the path of egress from the kitchen — not less than 10 feet and not more than 20 feet from the hood, mounted 42 to 48 inches above the floor. Links get changed on a schedule for the life of the restaurant; NFPA 96 says semiannually.',
+		fail:'A pull station behind the fryer is a pull station nobody can reach in a fire. It is also a failed inspection today.',
+		grade:'1', src:SRC_F+' — IFC 904.13.1 manual actuation 10–20 ft from the system, 42–48 in. above the floor.', layer:'links'},
+	{id:'il', z:25, sym:'Il', name:'The interlock — gas, power and fans', short:'Interlock', fam:'fi', row:6, needs:['fl'],
+		law:'A fire suppression system that leaves the gas on is a fire suppression system that loses.',
+		spec:'On activation: the electric gas valve closes, electric power to the appliances under the hood drops, and the make-up air unit shuts down so it stops feeding the fire. The exhaust fan keeps running per the design. Reset is manual, by hand, at the panel — never automatic. Separately, the make-up air is interlocked to run whenever the exhaust runs.',
+		fail:'Wire the make-up air to keep running and you have installed a fan that blows air onto a fire while the chemical tries to smother it.',
+		grade:'1', src:SRC_F+' — IFC 904.13.2 automatic fuel and electrical shutoff, manual reset; makeup air electrically interlocked with the exhaust.', layer:'interlock'},
+	{id:'g6', icon:'inspector', z:26, sym:'G6', name:'Fire suppression discharge test', short:'Suppression test', fam:'pp', row:6, gate:6, needs:['il'],
+		law:'Nobody takes the installer’s word for it. They make it fire.',
+		spec:'Fire marshal witnesses a functional test: pull the station, watch the gas valve slam, watch the appliance power drop, watch the make-up air stop, confirm the exhaust behaviour. Nozzle count and aim verified against the listing. Certificate goes in the file.',
+		fail:'One wire landed on the wrong contact and the whole crew comes back on another day the fire marshal has open — which may not be this week.',
+		grade:'1', src:SRC_F+'; NFPA 17A acceptance testing.', layer:'gate6', lit:['ansul','links','interlock']},
+
+	/* ================= ROW 7 — the last look above the ceiling ================= */
+	{id:'ma', z:27, sym:'Ma', name:'Make-up air unit, interlocked', short:'Make-up air', fam:'hd', row:7, needs:['g6'], altOf:'nm',
+		law:'Every cubic foot the hood throws out has to come back in through something. Your choice is a unit, or the front door.',
+		spec:'A mechanical make-up air unit delivering approximately the exhaust volume, tempered, ducted to the kitchen, electrically interlocked so it runs whenever the exhaust runs and stops when the suppression fires. Doors and windows do not count as make-up air.',
+		fail:'None — this is the way it is done, and it is the difference between a kitchen and a wind tunnel.',
+		grade:'1', src:SRC_M+' — makeup air approximately equal to exhaust; “shall be electronically interlocked with the exhaust system.”', layer:'mua'},
+	{id:'nm', z:27, sym:'Ma', name:'Skip the make-up air — the fan is enough', short:'No make-up air', fam:'hd', row:7, needs:['g6'], trap:true, altOf:'ma',
+		law:'It is a fan. Fans pull air. The building has air in it. Save the eleven thousand dollars.',
+		spec:'The exhaust fan alone, no unit, no duct, no interlock. The ceiling looks finished. The kitchen looks finished. On a walkthrough with the owner, in an empty building with the fan off, nothing is wrong at all.',
+		fail:'The above-ceiling inspection fails on the mechanical plan: the approved drawings show a make-up air unit and the ceiling does not have one. And when it does run: the front door needs two hands to open, the pilot lights blow out, the hood stops capturing, and the dining room smells like the fryer.',
+		grade:'5', src:'Not make-up air. That is the point. ' + SRC_M, layer:'nomua'},
+	{id:'sp', z:28, sym:'Sp', name:'Sprinkler heads and fire alarm devices', short:'Sprinklers & alarm', fam:'fi', row:7, needs:['ma|nm'],
+		law:'A restaurant packs more people into the same box than the store did. The building may now need protection it did not need before.',
+		spec:'If the building is sprinklered, heads relocated to the new ceiling and the new walls, and the kitchen system tied to the alarm. Assembly occupancies cross sprinkler thresholds on fire area, occupant load, and being above or below the level of exit discharge — the plan reviewer tells you which one you hit. Alarm devices, horns and strobes placed and roughed.',
+		fail:'Find out at the fire marshal final that a 120-seat A-2 needed a sprinkler system and you have a project that stopped being a build-out.',
+		grade:'2', src:'FBC Fire / Florida Fire Prevention Code sprinkler thresholds for Group A-2 — confirm the trigger with the plan reviewer for your specific fire area and occupant load.', layer:'sprink'},
+	{id:'g7', icon:'inspector', z:29, sym:'G7', name:'Above-ceiling inspection', short:'Above-ceiling insp.', fam:'pp', row:7, gate:7, needs:['sp'], failsIf:['nm'],
+		law:'The last day anybody can see the top half of your building.',
+		spec:'Mechanical, electrical, sprinkler and alarm above the ceiling line checked against the approved plans — including the make-up air unit and its interlock — before the grid and tile go in.',
+		fail:'Grid it first and the ceiling comes back out in the middle of a finished kitchen.',
+		grade:'1', src:'Local combination above-ceiling inspection.', layer:'gate7', lit:['mua','nomua','sprink','duct','wrap']},
+
+	/* ================= ROW 8 — surfaces, equipment, and people ================= */
+	{id:'qt', z:30, sym:'Qt', name:'Quarry tile floor with a coved base', short:'Floor & cove', fam:'fn', row:8, needs:['g7'],
+		law:'A ninety-degree corner between a floor and a wall is a place a mop cannot go.',
+		spec:'Quarry tile or sealed commercial floor in the kitchen, dish and storage areas, sloped to the drains. Every junction between wall and floor coved and sealed — a curved base tile or a coved resilient base, not a caulk line. Same rule in restrooms and dry storage.',
+		fail:'Straight base at the floor line is the single most common re-do on a build-out. It fails on the state’s walk-through and you are cutting tile in a finished kitchen.',
+		grade:'1', src:SRC_H+': “All junctures between walls and floors shall be coved and sealed.”', layer:'floor'},
+	{id:'fr', z:31, sym:'Fr', name:'Washable walls, ceiling and shielded lights', short:'Walls & ceiling', fam:'fn', row:8, needs:['qt'],
+		law:'Smooth, durable, non-absorbent, cleanable. Four words that decide every finish in the back of the house.',
+		spec:'FRP or equivalent behind every wet and cooking wall, washable ceiling tile in a cleanable grid, semi-gloss where it has to be wiped. Light fixtures over exposed food, prep and storage get shields or shatter-resistant coatings. No exposed wood, no raw block, no acoustic tile above the cook line.',
+		fail:'A beautiful reclaimed-wood accent wall in a prep area is an absorbent surface. It photographs well and it does not pass.',
+		grade:'1', src:SRC_H+' — finishes smooth, easily cleanable and nonabsorbent; protective covers on lights over exposed food.', layer:'finish'},
+	{id:'wk', z:32, sym:'Wk', name:'Walk-in cooler and freezer', short:'Walk-in', fam:'cd', row:8, needs:['fr'],
+		law:'The walk-in is a building inside your building, and it drains like one.',
+		spec:'Box set on the prepared pad, panels sealed, floor coved into the box. Refrigeration lines run and insulated the whole way to the condenser — the entire suction line, not the part you can see. Condensate from the evaporator and the freezer drain line, heat-traced on the freezer, terminating over a floor sink with an air gap. Interior light shielded, door hardware openable from inside.',
+		fail:'A bare suction line sweats onto a finished ceiling until it stains through. A condensate line hard-piped to the sewer fails the state on opening day.',
+		grade:'1', src:SRC_H+' indirect waste and air gap; refrigeration piping per the manufacturer and FBC Mechanical.', layer:'walkin'},
+	{id:'eq', z:33, sym:'Eq', name:'Set the line and connect it', short:'Set equipment', fam:'pw', row:8, needs:['fr'],
+		law:'The equipment plan the state approved is the equipment that goes in. Not the equipment that came up on the auction site.',
+		spec:'Cook line set under the hood at the spacing the suppression design was drawn to, casters and restraining cables on the movable pieces, quick-disconnects on the gas, whips landed, dishmachine and booster set, ice machine on its floor sink, shelving up on the blocking. Six inches of clearance under anything not sealed to the floor, or seal it down.',
+		fail:'Swap the 3-bank fryer for a 4-bank one and the fire suppression nozzles no longer match the appliances they were listed for. That system gets redesigned, repermitted and retested.',
+		grade:'1', src:'Approved equipment schedule; ' + SRC_F + ' nozzle placement is appliance-specific.', layer:'line'},
+	{id:'ag', z:34, sym:'Ag', name:'Air gap every food drain', short:'Air gaps', fam:'wa', row:8, needs:['eq'], altOf:'hp',
+		law:'The sewer must never be able to reach the food. The only guaranteed barrier is open air.',
+		spec:'Every drain from equipment that holds food, ice, portable equipment or utensils is indirectly wasted through an air gap over a floor sink — three-compartment sink, prep sink, dishmachine, ice machine, walk-in evaporators, steam kettles. The gap between the waste pipe and the flood-level rim is at least twice the effective opening of the pipe. Mop sinks and toilets connect direct; food fixtures never do.',
+		fail:'None — this is the way it is done, and it is the reason a backed-up main does not become an ice machine full of sewage.',
+		grade:'1', src:SRC_H+': “All drains from any equipment in which food (including ice)… are placed must be indirectly wasted by means of an air gap… a minimum of twice the effective opening of the indirect waste pipe.”', layer:'airgap'},
+	{id:'hp', z:34, sym:'Ag', name:'Hard-pipe the sink drains', short:'Hard-piped', fam:'wa', row:8, needs:['eq'], trap:true, altOf:'ag',
+		law:'A pipe into a pipe. It drains faster, it never overflows onto the floor, and it is one afternoon instead of three.',
+		spec:'Tailpiece straight into the waste line under the three-compartment sink and the ice machine. Behind a stainless sink, under a shadow, in a room nobody walks into. The building inspector is not looking for it. The fire marshal is not looking for it. It will pass every gate on this dial except the one that matters.',
+		fail:'The state opening inspection fails on indirect waste. You are now re-plumbing under installed, sealed, connected equipment in a finished kitchen — with a staff hired, a menu printed, and an opening date announced.',
+		grade:'5', src:'A direct connection, not an air gap. That is the point. ' + SRC_H, layer:'hardpipe'},
+	{id:'rr', z:35, sym:'Rr', name:'The accessible restroom', short:'Restroom', fam:'ac', row:8, needs:['fr'],
+		law:'The restroom is where a build-out gets sued. Everything in it is a measurement.',
+		spec:'Clear floor space to turn — a 60-inch circle or a T-turn. Water closet centreline 16 to 18 inches from the side wall. Grab bars 33 to 36 inches above the floor, on the blocking you put in at rough. Lavatory rim no higher than 34 inches with knee clearance under it, and the drain and hot supply insulated or configured so nobody can touch them. Door manoeuvring clearance on the pull side, hardware that works without grasping or twisting. Mirror, dispensers and hooks within reach range.',
+		fail:'Every one of these is a tape-measure item at final. A lavatory an inch too high comes off the wall, and the tile behind it comes off with it.',
+		grade:'1', src:SRC_A+' §§304, 604, 606, 609 (turning space, water closet, lavatory, grab bars).', layer:'restroom'},
+	{id:'rt', z:36, sym:'Rt', name:'The route, the tables and the counter', short:'Access route', fam:'ac', row:8, needs:['qt'],
+		law:'Somebody in a wheelchair has to get from the parking space to a table and order without being carried.',
+		spec:'An accessible route from the accessible parking to the entrance and through the dining room, with no step and no lip. At least five percent of the dining surfaces accessible — 28 to 34 inches high with knee and toe clearance — and dispersed, not all pushed into one corner by the restroom. A portion of the service or order counter no higher than 36 inches. Aisle widths kept when the furniture arrives, not just on the plan.',
+		fail:'Every accessible table crammed against the kitchen door is technically compliant seating and practically an insult. It is also the first thing a plaintiff’s photograph shows.',
+		grade:'1', src:SRC_A+' §§206, 226, 902, 904 (routes, dining surfaces, counters).', layer:'dining'},
+	{id:'g8', icon:'inspector', z:37, sym:'G8', name:'Finish and equipment inspection', short:'Finish insp.', fam:'pp', row:8, gate:8, needs:['wk','ag|hp','rr','rt'],
+		law:'The building department’s last look before the people with clipboards arrive.',
+		spec:'Finishes, coving, restroom dimensions, accessible route, equipment set and connected, gas and electrical finals on the line.',
+		fail:'A tape measure in an accessible restroom is not an opinion.',
+		grade:'1', src:'Local building, plumbing, electrical and mechanical final inspections.', layer:'gate8', lit:['floor','finish','walkin','line','airgap','restroom','dining']},
+
+	/* ================= ROW 9 — the fire marshal ================= */
+	{id:'ex', z:38, sym:'Ex', name:'Exits, panic hardware, signs and lights', short:'Exits', fam:'fi', row:9, needs:['g8'],
+		law:'A restaurant is a room full of strangers in the dark who do not know where the back door is.',
+		spec:'Occupant load calculated and posted — dining at roughly 15 square feet per person for tables and chairs, kitchen far less dense. Fifty or more people means assembly: two exits, doors swinging out, panic hardware on the exit doors, illuminated exit signs on the path, and emergency lighting on battery or generator that stays on when the power drops. Exit path clear of the furniture the owner wants to add.',
+		fail:'Panic hardware ordered after the doors are hung is a six-week lead time standing between you and a certificate of occupancy.',
+		grade:'2', src:'FBC 8th Ed. means of egress: occupant load table, two exits above 49 occupants, panic hardware for Group A at 50 or more. Confirm your load with the plan reviewer.', layer:'exit'},
+	{id:'ke', z:39, sym:'Ke', name:'Class K and the rest of the extinguishers', short:'Extinguishers', fam:'fi', row:9, needs:['ex'],
+		law:'Water on a fryer fire makes a fireball. There is a specific extinguisher for that, and it is not the red one.',
+		spec:'A portable extinguisher within 30 feet of travel distance from the cooking equipment, Class K where the cooking uses vegetable or animal oils and fats. Standard ABC units on the general path per the fire code spacing. Tags current, mounted at the right height, with the placard by the Class K unit telling staff to fire the hood system first.',
+		fail:'A Class K unit sitting in the box in the office is not mounted. The fire marshal does not grade on intent.',
+		grade:'1', src:SRC_F+' — IFC 904.13.5: portable extinguisher within 30 ft travel distance; Class K for vegetable or animal oils and fats.', layer:'extg'},
+	{id:'g9', icon:'inspector', z:40, sym:'G9', name:'Fire marshal final', short:'Fire final', fam:'pp', row:9, gate:9, needs:['ke'],
+		law:'He is not inspecting your restaurant. He is inspecting how a hundred strangers get out of it.',
+		spec:'Egress width and path, door swing and hardware, exit signs and emergency lights tested under load, occupant load posted, extinguishers mounted and tagged, hood system tagged, alarm and sprinkler accepted.',
+		fail:'Anything he writes up here sits between you and the CO, and none of it is a same-day fix.',
+		grade:'1', src:'Florida Fire Prevention Code final inspection.', layer:'gate9', lit:['exit','extg','ansul','sprink']},
+
+	/* ================= ROW 10 — the state, then the keys ================= */
+	{id:'hs', z:41, sym:'Hs', name:'Stock it — hot water, soap, towels, thermometers', short:'Stock it', fam:'fn', row:10, needs:['g9'],
+		law:'The state does not inspect a building. It inspects a restaurant, and a restaurant has soap in it.',
+		spec:'Hot water proven at every hand sink. Soap and single-use towels at each one. Thermometers in every cooler and freezer, test strips at the three-compartment sink, a probe thermometer on the line. Chemicals stored below and away from food. A certified food manager on staff and the employee training in place. Licence application and fee submitted so the licence can print the day you pass.',
+		fail:'Everything built right, and the inspection fails because there is no paper towel dispenser over a hand sink. It happens constantly.',
+		grade:'1', src:SRC_D+'; ' + SRC_H + '.', layer:'stock'},
+	{id:'g10', icon:'inspector', z:42, sym:'G10', name:'Opening inspection, licence, and the CO', short:'Opening & CO', fam:'pp', row:10, gate:10, needs:['hs'], failsIf:['hp'],
+		law:'Two signatures on one day: the state lets you cook, and the county lets you open the door.',
+		spec:'DBPR opening inspection against the approved plan — sinks where they were drawn, indirect waste on every food fixture, finishes cleanable, hot water, coving, lighting. Then the licence. Then the building department issues the certificate of occupancy.',
+		fail:'A CO without a licence is an empty room. A licence without a CO is a crime. You need both, and the last item found is always the plumbing under a sink.',
+		grade:'1', src:SRC_D+'; local certificate of occupancy.', layer:'gate10', lit:['stock','airgap','hardpipe','floor','finish','restroom']},
+];
+const byId = Object.fromEntries(PARTS.map(p=>[p.id,p]));
+const famById = Object.fromEntries(FAMS.map(f=>[f.id,f]));
+const fill = (h,h2)=>`linear-gradient(155deg, color-mix(in srgb, ${h} 58%, #ffffff) 0%, ${h} 46%, ${h2} 100%)`;
+const NG = ROWS.length;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {placed:new Set(), leaks:0, fails:0, passed:new Set(), burned:new Set(), failedRows:new Set(), view:'cutaway', sel:null};
+const stage = document.getElementById('stage');
+const SORTED = PARTS.slice().sort((a,b)=>a.z-b.z || (a.trap?1:0)-(b.trap?1:0));
+const ORDER = SORTED.filter(p=>p.fam!=='pp');        // the ring: what goes on the house
+const PAPER = SORTED.filter(p=>p.fam==='pp');        // the shelf: permit + the ten inspections
+const N = ORDER.length;
+// clockwise from 12 o'clock, spaced by arc length so the flat top of a tall screen is not crowded
+let ANGS = [];
+const ANG = i => ANGS[i];
+function spaceRing(rx, ry){
+	const M = 720, len = [0]; let prev = [rx*Math.cos(-Math.PI/2), ry*Math.sin(-Math.PI/2)];
+	for(let k=1;k<=M;k++){ const a = -Math.PI/2 + 2*Math.PI*k/M; const p = [rx*Math.cos(a), ry*Math.sin(a)]; len.push(len[k-1] + Math.hypot(p[0]-prev[0], p[1]-prev[1])); prev = p; }
+	const total = len[M];
+	ANGS = ORDER.map((_,i)=>{ const s = total*(i+0.5)/N; let k=0; while(k<M && len[k+1]<s) k++; const f=(s-len[k])/(len[k+1]-len[k]); return -Math.PI/2 + 2*Math.PI*(k+f)/M; });
+}
+const MID = (i,j) => { let a = ANGS[i], b = ANGS[j]; if(b < a) b += 2*Math.PI; return (a+b)/2; };
+let geo = {cx:0,cy:0,rx:0,ry:0};
+
+function el(tag, cls){ const n=document.createElement(tag); if(cls) n.className=cls; return n; }
+const svgNS='http://www.w3.org/2000/svg';
+function mk(tag, attrs){ const n=document.createElementNS(svgNS,tag); for(const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+
+/* ============================================================
+   THE RING — the table's rows become arcs, its tiles a dial
+   ============================================================ */
+function inspectorSVG(n, ink){
+	return `<svg viewBox="0 0 34 32" width="100%" height="100%" aria-hidden="true">
+		<circle cx="11" cy="7.5" r="4.2" fill="${ink}"/>
+		<path d="M3.5 29 v-9 a7.5 7.5 0 0 1 15 0 v9 z" fill="${ink}"/>
+		<path d="M16 21 L21 17" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
+		<circle cx="24.5" cy="14.5" r="7" fill="rgba(255,255,255,.55)" stroke="${ink}" stroke-width="2.2"/>
+		<path d="M29.5 19.5 L33 23" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>
+		<text x="24.5" y="17.8" text-anchor="middle" font-family="Iowan Old Style,Palatino Linotype,Palatino,Georgia,serif" font-size="${n>9?8.5:10}" font-weight="700" fill="${ink}">${n}</text>
+	</svg>`;
+}
+function permitSVG(ink){
+	return `<svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden="true">
+		<path d="M7 3 h13 l6 6 v20 h-19 z" fill="rgba(255,255,255,.75)" stroke="${ink}" stroke-width="1.8" stroke-linejoin="round"/>
+		<path d="M20 3 v6 h6" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linejoin="round"/>
+		<path d="M10.5 13 h11 M10.5 17 h11 M10.5 21 h7" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/>
+		<circle cx="21" cy="24" r="3.2" fill="none" stroke="#b3382a" stroke-width="1.6"/>
+	</svg>`;
+}
+function symMarkup(p, ink){
+	if(p.icon==='inspector') return `<span class="pic">${inspectorSVG(p.row, ink)}</span>`;
+	if(p.icon==='permit') return `<span class="pic">${permitSVG(ink)}</span>`;
+	return `<span class="sym">${p.sym}</span>`;
+}
+function tileNode(p, ring){
+	const f = famById[p.fam];
+	const b = el('button','tile'); b.type='button'; b.dataset.id = p.id;
+	b.style.background = fill(f.hue,f.hueTo);
+	b.setAttribute('aria-label', `${p.name}. ${f.label}, ${ROWS[p.row-1].label}.`);
+	b.innerHTML = `<span class="z">${p.z}</span>${symMarkup(p,'#161410')}<span class="nm">${p.short}</span>${p.link?'<span class="lk" title="Opens ROOF Shingle">↗</span>':''}`;
+	if(ring){
+		b.addEventListener('pointerdown', startDrag);
+		b.addEventListener('pointerenter', e=>{ if(!drag && window.matchMedia('(hover:hover)').matches) openPeek(p.id, {}); });
+		b.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); attempt(p.id); } });
+	}
+	return b;
+}
+function buildRing(){
+	stage.querySelectorAll('.tile').forEach(t=>t.remove());
+	SORTED.forEach(p=>stage.appendChild(tileNode(p,true)));
+	layout();
+}
+function layout(){
+	const W = stage.clientWidth, H = stage.clientHeight;
+	const tw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tw'));
+	const th = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--th'));
+	const cx = W/2, cy = H/2;
+	const rx = W/2 - tw/2 - 12, ry = H/2 - th/2 - 12;
+	const stagger = 1;
+	geo = {cx,cy,rx,ry,tw,th,stagger};
+	spaceRing(rx, ry);
+	ORDER.forEach((p,i)=>{
+		const t = stage.querySelector(`.tile[data-id="${p.id}"]`); if(!t) return;
+		const a = ANG(i);
+		t.style.left = (cx + rx*Math.cos(a))+'px'; t.style.top = (cy + ry*Math.sin(a))+'px';
+	});
+	// house box: largest 800:560 rectangle inside the inner ellipse, minus the paper shelf above it
+	const irx = rx - tw/2 - 18, iry0 = ry - th/2 - 18 - 14;
+	const k = 800/560;
+	const fit = (iry)=>{ const b = 1/Math.sqrt((k/irx)**2 + (1/iry)**2); return [k*b, b]; };
+	// pass 1: one shelf row; measure the width the ring leaves free at shelf height; pass 2: real row count
+	let rows = 1, a, b;
+	for(let pass=0; pass<2; pass++){
+		[a,b] = fit(iry0 - rows*(th+10)/2);
+		const top = cy - b + rows*(th+10)/2 - 10;
+		const shelfY = top - th/2 - 8 - (rows-1)*(th+6);
+		const v = Math.min(0.98, Math.abs(shelfY - cy)/(ry*stagger));
+		const avail = 2*(rx*stagger*Math.sqrt(1-v*v) - tw/2 - 10);
+		const perRow = Math.max(3, Math.floor(avail/(tw+4)));
+		rows = Math.ceil(PAPER.length/perRow);
+	}
+	const box = document.getElementById('housebox');
+	box.style.width = (2*a)+'px'; box.style.height = (2*b)+'px';
+	const top = cy - b + rows*(th+10)/2 - 10;
+	box.style.left = (cx-a)+'px'; box.style.top = top+'px';
+	// the paper shelf: permit and inspections in rows just above the house, in inspection order
+	const perRow = Math.ceil(PAPER.length/rows);
+	for(let r=0; r<rows; r++){
+		const items = PAPER.slice(r*perRow, (r+1)*perRow);
+		const gap = Math.min(12, Math.max(4, (2*a - items.length*tw)/(items.length+1)));
+		items.forEach((p,i)=>{
+			const t = stage.querySelector(`.tile[data-id="${p.id}"]`); if(!t) return;
+			t.style.left = (cx + (i-(items.length-1)/2)*(tw+gap))+'px';
+			t.style.top = (top - th/2 - 8 - (rows-1-r)*(th+6))+'px';
+		});
+	}
+	const msg = document.getElementById('msg'); msg.style.top = (top + 2*b - 6)+'px';
+	drawDial();
+}
+function drawDial(){
+	const d = document.getElementById('dial'); d.innerHTML='';
+	const {cx,cy,rx,ry} = geo;
+	const pt = a => [cx+rx*Math.cos(a), cy+ry*Math.sin(a)];
+	ROWS.forEach(r=>{
+		const idx = ORDER.map((p,i)=>p.row===r.n?i:-1).filter(i=>i>=0);
+		if(!idx.length) return;
+		const i0 = idx[0], i1 = idx[idx.length-1];
+		const a0 = (i0===0 ? -Math.PI/2 : MID(i0-1, i0)) + 0.02, a1 = (i1===N-1 ? 3*Math.PI/2 : MID(i1, i1+1)) - 0.02;
+		const [x0,y0]=pt(a0), [x1,y1]=pt(a1);
+		const large = (a1-a0) > Math.PI ? 1 : 0;
+		const status = state.passed.has(r.n) ? 'pass' : state.failedRows.has(r.n) ? 'fail' : (openRow()===r.n ? 'open' : '');
+		d.appendChild(mk('path',{d:`M${x0},${y0} A${rx},${ry} 0 ${large} 1 ${x1},${y1}`, class:'arc '+status}));
+		const am = (a0+a1)/2; const lx = cx + (rx*geo.stagger-geo.tw/2-12)*Math.cos(am), ly = cy + (ry*geo.stagger-geo.th/2-12)*Math.sin(am);
+		const t = mk('text',{x:lx, y:ly, class:'rl '+status, 'text-anchor': Math.cos(am)>0.3?'end':Math.cos(am)<-0.3?'start':'middle', 'dominant-baseline':'middle'});
+		t.textContent = `${r.n} · ${r.label}`; d.appendChild(t);
+	});
+}
+function openRow(){ const g = PARTS.find(p=>p.gate && !state.placed.has(p.id)); return g ? g.row : 0; }
+function refreshTiles(){
+	document.querySelectorAll('.tile').forEach(t=>{
+		const p = byId[t.dataset.id];
+		t.classList.toggle('spent', state.placed.has(p.id));
+		t.classList.toggle('burned', state.burned.has(p.id));
+		t.classList.toggle('covered', !state.placed.has(p.id) && !!coveredBy(p));
+		t.classList.toggle('ready', ready(p));
+		t.classList.toggle('sel', state.sel===p.id);
+	});
+	drawDial();
+}
+window.addEventListener('resize', layout);
+
+/* ============================================================
+   DRAG — to the house in the middle
+   ============================================================ */
+const ghost = document.getElementById('ghost');
+const housebox = document.getElementById('housebox');
+let drag = null;
+function startDrag(e){
+	if(e.button!==undefined && e.button!==0) return;
+	const t = e.currentTarget; const id = t.dataset.id;
+	drag = {id, x0:e.clientX, y0:e.clientY, moved:false, t};
+	t.setPointerCapture(e.pointerId);
+	t.addEventListener('pointermove', moveDrag);
+	t.addEventListener('pointerup', endDrag);
+	t.addEventListener('pointercancel', endDrag);
+}
+function moveDrag(e){
+	if(!drag) return;
+	if(!drag.moved && Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) > 6){
+		drag.moved = true; closePeek();
+		ghost.innerHTML=''; const c = tileNode(byId[drag.id], false); ghost.appendChild(c); ghost.style.display='block';
+		document.body.style.cursor='grabbing';
+	}
+	if(drag.moved){
+		ghost.style.left = (e.clientX - geo.tw/2)+'px'; ghost.style.top = (e.clientY - geo.th/2)+'px';
+		stage.classList.toggle('over', overHouse(e));
+	}
+}
+function overHouse(e){ const r = housebox.getBoundingClientRect(); const pad = 40; return e.clientX>=r.left-pad && e.clientX<=r.right+pad && e.clientY>=r.top-pad && e.clientY<=r.bottom+pad; }
+function endDrag(e){
+	if(!drag) return;
+	const d = drag; drag = null;
+	d.t.removeEventListener('pointermove', moveDrag); d.t.removeEventListener('pointerup', endDrag); d.t.removeEventListener('pointercancel', endDrag);
+	ghost.style.display='none'; stage.classList.remove('over'); document.body.style.cursor='';
+	if(!d.moved){ openPeek(d.id, {}); return; }           // a tap is "look", not "go"
+	if(overHouse(e)) attempt(d.id, e); else { state.sel=null; refreshTiles(); }
+}
+
+/* ============================================================
+   ENGINE — a partial order, ten gates, two traps
+   ============================================================ */
+function met(need){ return need.split('|').some(id=>state.placed.has(id)); }
+function coveredBy(p){ if(p.altOf && state.placed.has(p.altOf)) return byId[p.altOf]; return PARTS.find(q=>q.altOf===p.id && state.placed.has(q.id)) || null; }
+function ready(p){ return !state.placed.has(p.id) && !state.burned.has(p.id) && !coveredBy(p) && p.needs.every(met); }
+function missing(p){ return p.needs.filter(n=>!met(n)).map(n=>n.split('|').map(id=>byId[id].short).join(' or ')); }
+
+function attempt(id, e){
+	const p = byId[id];
+	if(state.placed.has(id)){ openPeek(id,{note:'Already in the building.'}); return; }
+	if(state.burned.has(id)){ openPeek(id,{}); return; }
+	const cov = coveredBy(p);
+	if(cov){ openPeek(id, {note:`Already covered by “${cov.name}”. Two ways to do one job — you only do one.`}); return; }
+	if(!p.needs.every(met)){
+		state.leaks++; leak(e); shakeTile(id);
+		const why = `Not yet. The job needs: ${missing(p).join(', ')}. ${p.gate? 'You are calling an inspection on something that is not there.' : 'You cannot cover what the inspector has not seen.'}`;
+		say('leak', `<b>Leak.</b> ${why}`); openPeek(id, {leak:why});
+		score(); return;
+	}
+	if(p.gate){
+		const burn = (p.failsIf||[]).filter(t=>state.placed.has(t));
+		if(burn.length){
+			state.fails++; state.failedRows.add(p.row);
+			burn.forEach(t=>{ state.placed.delete(t); state.burned.add(t); });
+			redraw(); stampGate(p, 'fail');
+			const t = byId[burn[0]];
+			const why = `${ROWS[p.row-1].label} inspection: FAIL. “${t.name}” comes out. ${t.fail}`;
+			say('fail', `<b>${ROWS[p.row-1].label}: FAIL.</b> “${t.short}” comes out. ${t.fail}`);
+			openPeek(t.id, {failGate:why}); refreshTiles(); score(); return;
+		}
+		state.placed.add(id); state.passed.add(p.row); state.failedRows.delete(p.row); stampGate(p,'pass');
+		say('pass', `<b>${ROWS[p.row-1].label}: PASS.</b> ${ROWS[p.row-1].sees}`);
+		closePeek();
+		if(p.row===NG) finish();
+	} else {
+		state.placed.add(id);
+		say('', `<b>${p.short}</b> is in. ${p.law}`);
+		closePeek();
+	}
+	state.sel=null; redraw(); refreshTiles(); score();
+}
+function say(kind, html){ const m = document.getElementById('msg'); m.className = kind; m.innerHTML = html; }
+function shakeTile(id){ const t = stage.querySelector(`.tile[data-id="${id}"]`); if(!t) return; t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
+function leak(e){
+	const svg = document.getElementById('scene'); const g = document.getElementById('leaks');
+	let x=400,y=300;
+	if(e && e.clientX){ const pt = svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); x=Math.max(60,Math.min(740,q.x)); y=Math.max(60,Math.min(480,q.y)); }
+	for(let i=0;i<4;i++){
+		const c = mk('ellipse',{cx:x+(i-1.5)*9, cy:y+i*4, rx:3.2, ry:5, fill:'#6f92b8', opacity:.95, class:'drip'});
+		c.style.animationDelay = (i*.12)+'s'; g.appendChild(c); setTimeout(()=>c.remove(), 1500+i*120);
+	}
+}
+function stampGate(p, kind){
+	const s = document.getElementById('stamps');
+	let d = s.querySelector(`[data-row="${p.row}"]`);
+	if(!d){ d = el('div','stamp'); d.dataset.row = p.row; s.appendChild(d); }
+	d.className = 'stamp '+kind; d.title = `${ROWS[p.row-1].label} · ${kind==='pass'?'PASS':'FAIL'}`; d.setAttribute('aria-label', d.title);
+	d.innerHTML = `<span class="pic" style="display:block;width:22px;height:18px">${inspectorSVG(p.row, kind==='pass'?'#7fa07a':'#c46a4a')}</span>`;
+	[...s.children].sort((a,b)=>a.dataset.row-b.dataset.row).forEach(c=>s.appendChild(c));
+}
+function score(){ document.getElementById('score').innerHTML = `Gates <b>${state.passed.size}/${NG}</b> · Leaks <b>${state.leaks}</b> · Failed gates <b>${state.fails}</b>`; }
+function finish(){
+	const bad = state.leaks + state.fails;
+	const stars = bad===0?3: bad<=3?2:1;
+	document.getElementById('d-stars').textContent = '★'.repeat(stars)+'☆'.repeat(3-stars);
+	document.getElementById('d-title').textContent = ['Open. It cost you a lot to get here.','Open. A few things came back out.','Open. Zero leaks. Do you want a job?'][stars-1];
+	document.getElementById('d-body').innerHTML = `Once around the dial: ten gates, <b>${state.leaks}</b> leak${state.leaks===1?'':'s'}, <b>${state.fails}</b> failed inspection${state.fails===1?'':'s'}. From the dining room it looked like a restaurant twenty steps ago. A screwed duct, a missing make-up air unit and a hard-piped sink drain all look exactly the same from a table. The inspections are the only reason it is a restaurant.`;
+	document.getElementById('done').classList.add('on');
+}
+function resetAll(){
+	state.placed.clear(); state.passed.clear(); state.burned.clear(); state.failedRows.clear(); state.leaks=0; state.fails=0; state.sel=null;
+	document.getElementById('stamps').innerHTML=''; document.getElementById('done').classList.remove('on'); closePeek();
+	say('', 'Drag a part into the space. Hover a tile to read it. <b>Gold ring = ready now.</b>');
+	redraw(); refreshTiles(); score();
+}
+document.getElementById('reset').addEventListener('click', resetAll);
+document.getElementById('again').addEventListener('click', resetAll);
+
+/* ============================================================
+   THE PEEK — the card, anchored to the tile, opening inward
+   ============================================================ */
+const peek = document.getElementById('peek');
+let peekLeaveTimer;
+function openPeek(id, o){
+	const p = byId[id]; const f = famById[p.fam]; const r = ROWS[p.row-1];
+	state.sel = id; refreshTiles();
+	const burned = state.burned.has(id);
+	const hideTrap = p.trap && !burned;
+	const g = hideTrap ? GRADES['1'] : GRADES[p.grade]; const gk = hideTrap ? '1' : p.grade;
+	const blocks = [];
+	if(o.leak) blocks.push(`<div class="blk fail"><h3>Leak</h3><p>${o.leak}</p></div>`);
+	if(o.failGate) blocks.push(`<div class="blk fail"><h3>Failed</h3><p>${o.failGate}</p></div>`);
+	if(o.note) blocks.push(`<div class="blk"><h3>Note</h3><p>${o.note}</p></div>`);
+	blocks.push(`<div class="blk spec"><h3>${p.gate?'What he checks':'Spec'}</h3><p>${p.spec}</p></div>`);
+	blocks.push(`<div class="blk fail"><h3>Fails when</h3><p>${p.fail}</p></div>`);
+	const can = !state.placed.has(id) && !burned;
+	document.getElementById('peekbody').innerHTML = `
+		<div class="bar" style="background:${f.hueTo}"></div>
+		<p class="kick">${p.gate?'Gate':(burned?'Cartoon':'Part')} · ${f.label} · ${r.n} ${r.label}${p.gate?' · '+r.code:''}</p>
+		${p.icon ? `<span class="pic">${p.icon==='inspector'?inspectorSVG(p.row,f.hueTo):permitSVG(f.hueTo)}</span>` : `<p class="sym" style="color:${f.hueTo}">${p.sym}</p>`}
+		<h2>${p.name}</h2>
+		<p class="meta">z ${p.z}${p.altOf?` · pairs with ${byId[p.altOf].short}`:''}${state.placed.has(id)?' · in the building':''}</p>
+		<p class="law">${p.law}</p>
+		${blocks.join('')}
+		<span class="grade g${gk}"><b>${g[0]}</b>${g[1]}</span>
+		<p class="src">${hideTrap ? 'Looks like every other tile in its family. That is the point.' : g[2]+' Source: '+p.src}</p>
+		${can ? `<button class="eat" id="peekgo">${p.gate?'Call the inspection':'Put it in the building'}</button>` : ''}`;
+	const go = document.getElementById('peekgo'); if(go) go.addEventListener('click', ()=>attempt(id));
+	peek.classList.add('on');
+	const t = stage.querySelector(`.tile[data-id="${id}"]`); const tr = t.getBoundingClientRect();
+	const pw = peek.offsetWidth, ph = peek.offsetHeight;
+	const tcx = tr.left + tr.width/2, tcy = tr.top + tr.height/2;
+	const W = window.innerWidth, H = window.innerHeight;
+	let left, top;
+	if(Math.abs(tcx - W/2) > W*0.18){ left = tcx < W/2 ? tr.right + 10 : tr.left - 10 - pw; top = tcy - ph/2; }
+	else { top = tcy < H/2 ? tr.bottom + 10 : tr.top - 10 - ph; left = tcx - pw/2; }
+	left = Math.max(8, Math.min(W - pw - 8, left)); top = Math.max(8, Math.min(H - ph - 8, top));
+	if(left < 260 && top < 84) top = 84;   // keep the view toggle uncovered
+	peek.style.left = left+'px'; peek.style.top = top+'px';
+}
+function closePeek(){ peek.classList.remove('on'); }
+document.getElementById('peekclose').addEventListener('click', closePeek);
+peek.addEventListener('pointerenter', ()=>clearTimeout(peekLeaveTimer));
+stage.addEventListener('pointerover', e=>{
+	if(!window.matchMedia('(hover:hover)').matches) return;
+	if(e.target.closest('.tile') || e.target.closest('#peek')) { clearTimeout(peekLeaveTimer); return; }
+	clearTimeout(peekLeaveTimer); peekLeaveTimer = setTimeout(()=>{ if(!peek.matches(':hover')) closePeek(); }, 500);
+});
+window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePeek(); document.getElementById('chart').classList.remove('on'); } });
+
+/* ============================================================
+   THE CHART — the table itself, read-only, one click away
+   ============================================================ */
+function buildTable(){
+	const grid = document.getElementById('table'); grid.innerHTML = '';
+	const cols = ['2.1rem']; const slots = [];
+	FAMS.forEach((f,i)=>{ if(i>0 && FAMS[i-1].block!==f.block){ slots.push({gutter:true}); cols.push('0.55rem'); } slots.push({fam:f}); cols.push('minmax(3.6rem,1fr)'); });
+	grid.style.gridTemplateColumns = cols.join(' ');
+	grid.appendChild(el('div'));
+	slots.forEach(s=>{ if(s.gutter){ grid.appendChild(el('div')); return; } const h = el('div','fam'); h.title = s.fam.q; h.innerHTML = `<b style="color:${s.fam.hueTo}">${s.fam.sym}</b><span>${s.fam.label}</span>`; grid.appendChild(h); });
+	ROWS.forEach(r=>{
+		const seats = {}; FAMS.forEach(f=>{ seats[f.id] = PARTS.filter(p=>p.fam===f.id && p.row===r.n).sort((a,b)=>a.z-b.z || (a.trap?1:-1)); });
+		const height = Math.max(1, ...Object.values(seats).map(a=>a.length));
+		const lab = el('div','rowlab'); lab.style.gridRow = `span ${height}`; lab.title = r.sees; lab.innerHTML = `<span>${r.n} · ${r.label}</span>`; grid.appendChild(lab);
+		for(let seat=0; seat<height; seat++) slots.forEach(s=>{ if(s.gutter){ grid.appendChild(el('div')); return; } const p = seats[s.fam.id][seat]; grid.appendChild(p ? tileNode(p,false) : el('div')); });
+	});
+	document.getElementById('legend').innerHTML = FAMS.map(f=>`<span><i style="background:${fill(f.hue,f.hueTo)}"></i>${f.label} — ${f.q}</span>`).join('');
+}
+document.getElementById('showchart').addEventListener('click', ()=>{ buildTable(); refreshTiles(); document.getElementById('chart').classList.add('on'); });
+document.getElementById('chartclose').addEventListener('click', ()=>document.getElementById('chart').classList.remove('on'));
+document.getElementById('chart').addEventListener('click', e=>{ if(e.target.id==='chart') e.currentTarget.classList.remove('on'); });
+
+/* ============================================================
+   THE SCENE — a section (cutaway / inspector) and the room a
+   customer sees (dining room). Both grow from the same `placed`
+   set. Every node carries data-layer.
+   Section coordinates: existing shell x 110..760, roof deck
+   104..118, finished floor 440, slab 440..462, soil below.
+   Back wall 110..128, street wall 742..760. Ceiling grid 252.
+   Kitchen 140..500, restroom 506..600, dining 612..742.
+   ============================================================ */
+const has = id => state.placed.has(id);
+const L = layer => PARTS.some(p=>p.layer===layer && state.placed.has(p.id));
+const rect = (x,y,w,h,f,extra={})=>mk('rect',Object.assign({x,y,width:w,height:h,fill:f},extra));
+const line = (x1,y1,x2,y2,s,w,extra={})=>mk('line',Object.assign({x1,y1,x2,y2,stroke:s,'stroke-width':w},extra));
+const path = (d,extra={})=>mk('path',Object.assign({d},extra));
+const text = (x,y,str,extra={})=>{ const t=mk('text',Object.assign({x,y},extra)); t.textContent=str; return t; };
+function grp(parent, layer){ const g = mk('g',{}); g.dataset.layer = layer; parent.appendChild(g); return g; }
+function inspectorFigure(parent, n, x, y, layer){
+	const g = grp(parent, layer);
+	g.setAttribute('transform', `translate(${x-17} ${y-34}) scale(1.05)`);
+	const fo = mk('foreignObject',{x:0,y:0,width:34,height:32}); fo.innerHTML = inspectorSVG(n, '#f2e9d2');
+	g.appendChild(mk('ellipse',{cx:14,cy:33,rx:12,ry:3,fill:'#000',opacity:.4})); g.appendChild(fo);
+}
+const MONO = 'ui-monospace,Menlo,monospace';
+function lab(g, x, y, str, col){ g.appendChild(text(x,y,str,{'font-size':7,'font-family':MONO,'letter-spacing':.6,fill:col||'#8e8a7e'})); }
+
+/* ---------- the bay you leased: always drawn, never a tile ---------- */
+function shellBase(S){
+	const g = mk('g',{}); S.appendChild(g);
+	g.appendChild(rect(110,462,650,98,'url(#soilg)'));                                   // ground under the slab
+	g.appendChild(rect(110,440,650,22,'#b4b0a8'));                                       // slab
+	g.appendChild(rect(110,104,650,14,'#5b5852'));                                       // roof deck
+	g.appendChild(rect(110,96,650,8,'#6d6a63'));                                         // roof covering
+	g.appendChild(rect(110,118,18,322,'url(#blockpat)'));                                // back wall
+	g.appendChild(rect(742,118,18,322,'url(#blockpat)'));                                // street wall
+	g.appendChild(rect(104,74,30,30,'#6b6963')); g.appendChild(rect(736,74,30,30,'#6b6963')); // parapets
+	g.appendChild(rect(128,118,614,322,'#101620'));                                      // the empty bay
+	lab(g, 268, 146, 'THE BAY YOU LEASED — 2,400 SF, THE LAST TENANT SOLD SHOES', '#4d4a44');
+	g.appendChild(line(0,462,110,462,'#3a2d22',2));
+	g.appendChild(rect(0,462,110,98,'url(#soilg)'));                                     // ground outside the back
+	g.appendChild(rect(760,462,40,98,'url(#soilg)'));
+	g.appendChild(rect(0,440,110,22,'#5f5c56')); g.appendChild(rect(760,440,40,22,'#3a3a3a')); // rear pad / street
+}
+
+function permitBoard(parent, layer){
+	const g = grp(parent, layer);
+	g.appendChild(rect(690,200,46,58,'#f6f2e8',{stroke:'#6d6b62','stroke-width':1}));
+	g.appendChild(text(694,212,'PERMIT',{'font-size':6,'font-family':MONO,'letter-spacing':.8,fill:'#161410'}));
+	g.appendChild(path('M694,220 h38 M694,227 h38 M694,234 h26 M694,241 h34',{stroke:'#a09a8c','stroke-width':1.4,'stroke-linecap':'round'}));
+	g.appendChild(mk('circle',{cx:726,cy:249,r:5,fill:'none',stroke:'#b3382a','stroke-width':1.6}));
+	g.appendChild(text(716,251,'DBPR',{'font-size':4.5,'font-family':MONO,fill:'#b3382a'}));
+	g.appendChild(rect(150,152,74,10,'#e6e0d2'));                                        // the plan roll on a table
+	g.appendChild(path('M150,152 l-8,5 l8,5',{fill:'none',stroke:'#c9c3b4','stroke-width':2}));
+	lab(g, 150, 148, 'APPROVED PLANS');
+}
+
+/* ============================== SECTION ============================== */
+function drawSection(){
+	const S = document.getElementById('SEC'); S.innerHTML='';
+	shellBase(S);
+
+	if(L('permit')) permitBoard(S,'permit');
+
+	/* ---- row 2: the floor comes open ---- */
+	if(L('shell')){
+		const g = grp(S,'shell');
+		[[236,86],[404,96],[556,60]].forEach(([x,w])=>{                                   // saw-cut trenches
+			g.appendChild(rect(x,440,w,22,'#2a2119'));
+			g.appendChild(line(x,440,x,462,'#e0d8c6',1,{opacity:.5}));
+			g.appendChild(line(x+w,440,x+w,462,'#e0d8c6',1,{opacity:.5}));
+		});
+		g.appendChild(rect(128,118,614,322,'#0b1018'));
+	}
+	if(L('uwaste')){
+		const g = grp(S,'uwaste');
+		g.appendChild(path('M470,494 H128 L104,500',{stroke:'#c9a24c','stroke-width':7,fill:'none','stroke-linecap':'round'}));  // grease line out the back
+		[250,300,430,462].forEach(x=>g.appendChild(line(x,494,x,466,'#c9a24c',5)));
+		g.appendChild(path('M540,506 H760',{stroke:'#9aa4b0','stroke-width':6,fill:'none','stroke-linecap':'round'}));           // sanitary to the main
+		[548,586].forEach(x=>g.appendChild(line(x,506,x,466,'#9aa4b0',5)));
+		lab(g, 150, 488, 'GREASE LINE', '#c9a24c');
+		lab(g, 610, 500, 'SANITARY', '#9aa4b0');
+	}
+	if(L('floorsink')){
+		const g = grp(S,'floorsink');
+		[250,300,430].forEach(x=>{
+			g.appendChild(rect(x-13,432,26,30,'#cfd4da'));
+			g.appendChild(rect(x-10,436,20,24,'#20262e'));
+			g.appendChild(line(x-13,434,x+13,434,'#eef1f4',2));
+		});
+	}
+
+	/* ---- row 3: outside the back door ---- */
+	if(L('grease')){
+		const g = grp(S,'grease');
+		g.appendChild(rect(14,478,86,66,'#7d7a72'));
+		g.appendChild(rect(20,484,74,54,'#2b2f28'));
+		g.appendChild(line(57,484,57,538,'#7d7a72',5));                                    // baffle wall, two chambers
+		g.appendChild(rect(20,484,74,14,'#5c5a2e',{opacity:.85}));                         // the grease layer
+		[30,74].forEach(x=>{ g.appendChild(rect(x-13,440,26,38,'#8d8b86')); g.appendChild(rect(x-15,436,30,6,'#c3c0b8')); });
+		g.appendChild(path('M104,500 L100,500 L100,492 L94,492',{stroke:'#c9a24c','stroke-width':6,fill:'none'}));
+		g.appendChild(mk('circle',{cx:94,cy:530,r:4,fill:'none',stroke:'#e8e4dc','stroke-width':1.5}));
+		lab(g, 6, 556, '1,000–1,500 GAL · SAMPLE POINT · A TRUCK CAN REACH IT');
+	}
+	if(L('water')){
+		const g = grp(S,'water');
+		g.appendChild(rect(60,404,44,20,'#9aa4b0'));
+		g.appendChild(mk('circle',{cx:70,cy:414,r:5,fill:'#d9dee4'}));
+		g.appendChild(rect(84,398,8,32,'#7f8a96'));
+		g.appendChild(path('M104,414 H128',{stroke:'#9aa4b0','stroke-width':5}));
+		lab(g, 24, 392, 'METER + RPZ BACKFLOW');
+	}
+
+	/* ---- row 4: the rooms and everything in the walls ---- */
+	if(L('walls')){
+		const g = grp(S,'walls');
+		[[140,252,6,188],[232,252,6,188],[500,252,6,188],[600,252,6,188]].forEach(([x,y,w,h])=>g.appendChild(rect(x,y,w,h,'#8e9299')));
+		g.appendChild(rect(140,246,98,8,'#8e9299'));                                       // walk-in enclosure top
+		g.appendChild(rect(246,186,166,10,'#8e9299'));                                     // hood soffit
+		g.appendChild(rect(506,252,94,6,'#8e9299'));
+		lab(g, 512, 268, 'RESTROOM');
+		lab(g, 148, 268, 'WALK-IN');
+	}
+	if(L('blocking')){
+		const g = grp(S,'blocking');
+		[[508,330,90,7],[508,356,90,7],[418,352,72,7],[246,300,80,7]].forEach(([x,y,w,h])=>{
+			g.appendChild(rect(x,y,w,h,'#c48f57'));
+			for(let i=x+6;i<x+w;i+=14) g.appendChild(line(i,y,i,y+h,'#8f6f4b',1));
+		});
+	}
+	if(L('power')){
+		const g = grp(S,'power');
+		g.appendChild(rect(646,268,38,64,'#3b4048')); g.appendChild(rect(650,272,30,56,'#c9a83a',{opacity:.35}));
+		for(let i=0;i<6;i++) g.appendChild(line(652,280+i*8,678,280+i*8,'#c9a83a',1.6));
+		g.appendChild(path('M646,290 H612 M612,290 V262 H300 V352',{stroke:'#c9a83a','stroke-width':2,fill:'none','stroke-dasharray':'5 4'}));
+		g.appendChild(path('M612,262 H452 V352',{stroke:'#c9a83a','stroke-width':2,fill:'none','stroke-dasharray':'5 4'}));
+	}
+	if(L('roughp')){
+		const g = grp(S,'roughp');
+		[[418,392],[452,392],[486,392],[352,398],[530,392],[566,392]].forEach(([x,y])=>{
+			g.appendChild(line(x,462,x,y,'#d9dee4',4));
+			g.appendChild(line(x-7,y,x+7,y,'#d9dee4',4));
+		});
+		g.appendChild(rect(660,352,34,58,'#b0b6bd')); g.appendChild(rect(664,356,26,50,'#7f8a96'));
+	}
+	if(L('gas')){
+		const g = grp(S,'gas');
+		g.appendChild(path('M128,418 H700 M300,418 V386 M340,418 V386 M262,418 V386',{stroke:'#c9762a','stroke-width':4,fill:'none'}));
+		[262,300,340].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:400,r:4,fill:'#f0b884'})));
+		g.appendChild(rect(694,404,22,28,'#c9762a')); g.appendChild(text(697,422,'PSI',{'font-size':7,'font-family':MONO,fill:'#161410'}));
+		lab(g, 138, 412, 'GAS — UNDER TEST', '#f0b884');
+	}
+
+	/* ---- row 5: hood, duct, fan ---- */
+	if(L('hood')){
+		const g = grp(S,'hood');
+		g.appendChild(path('M246,196 H412 L400,248 H258 Z',{fill:'#aeb6bf'}));
+		g.appendChild(path('M246,196 H412 L400,248 H258 Z',{fill:'none',stroke:'#7d868f','stroke-width':1.5}));
+		[276,306,336,366].forEach(x=>g.appendChild(path(`M${x},210 l12,0 l-8,26 l-12,0 z`,{fill:'#e8ecf0',opacity:.85})));
+		g.appendChild(rect(262,246,92,5,'#8d959e'));
+		lab(g, 152, 206, 'TYPE I HOOD');
+	}
+	if(L('duct') || L('ducttape')){
+		const taped = L('ducttape');
+		const g = grp(S, taped?'ducttape':'duct');
+		g.appendChild(rect(312,104,40,92,taped?'#8f8a80':'#b7bec6'));
+		g.appendChild(rect(312,104,40,92,'none',{stroke:'#6f7780','stroke-width':1.5}));
+		if(taped){
+			[126,150,174].forEach(y=>{ g.appendChild(line(312,y,352,y,'#3a3f45',2.5)); [318,330,342].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:y,r:2,fill:'#e0c26a'}))); });
+			lab(g, 366, 152, 'SCREWS + MASTIC', '#c46a4a');
+		} else {
+			[126,150,174].forEach(y=>g.appendChild(path(`M312,${y} q10,-4 20,0 q10,4 20,0`,{fill:'none',stroke:'#e8e4dc','stroke-width':2.4})));
+			lab(g, 366, 152, 'CONTINUOUS WELD', '#7fa07a');
+		}
+	}
+	if(L('wrap')){
+		const g = grp(S,'wrap');
+		g.appendChild(rect(302,104,60,96,'none',{stroke:'#d8c9a8','stroke-width':7,opacity:.9}));
+		lab(g, 214, 128, 'LISTED WRAP');
+	}
+	if(L('fan')){
+		const g = grp(S,'fan');
+		g.appendChild(rect(300,84,64,14,'#6d6a63'));                                       // curb
+		g.appendChild(path('M298,84 H366 L356,58 H308 Z',{fill:'#9aa4b0'}));
+		g.appendChild(mk('circle',{cx:332,cy:70,r:9,fill:'#3b4048'}));
+		g.appendChild(path('M332,52 l0,-10',{stroke:'#9aa4b0','stroke-width':3}));
+		g.appendChild(rect(366,78,18,14,'#7f8a96'));
+		lab(g, 392, 52, 'UPBLAST · CLEAR OF INTAKES');
+	}
+
+	/* ---- row 6: the system ---- */
+	if(L('ansul')){
+		const g = grp(S,'ansul');
+		g.appendChild(rect(420,196,26,58,'#c2413a')); g.appendChild(rect(423,200,20,50,'#e0625a'));
+		g.appendChild(text(424,230,'K',{'font-size':13,'font-family':MONO,fill:'#fff'}));
+		g.appendChild(path('M420,210 H412',{stroke:'#c2413a','stroke-width':3}));
+		[276,306,336,366].forEach(x=>{ g.appendChild(mk('circle',{cx:x,cy:222,r:3.4,fill:'#f2a8a8'})); g.appendChild(path(`M${x},226 l-5,10 M${x},226 l5,10`,{stroke:'#f2a8a8','stroke-width':1.4})); });
+		g.appendChild(mk('circle',{cx:332,cy:200,r:3.4,fill:'#f2a8a8'}));
+		lab(g, 418, 190, 'UL 300', '#f2a8a8');
+	}
+	if(L('links')){
+		const g = grp(S,'links');
+		g.appendChild(path('M258,206 H400',{stroke:'#f2a8a8','stroke-width':1.4,'stroke-dasharray':'3 3'}));
+		[276,306,336,366].forEach(x=>g.appendChild(rect(x-3,203,6,6,'#e8e4dc')));
+		g.appendChild(rect(466,300,20,28,'#c2413a'));
+		g.appendChild(rect(470,306,12,10,'#f6f2e8'));
+		g.appendChild(path('M476,316 v10',{stroke:'#e8e4dc','stroke-width':2}));
+	}
+	if(L('interlock')){
+		const g = grp(S,'interlock');
+		g.appendChild(rect(216,404,24,26,'#c2413a'));
+		g.appendChild(text(219,422,'GV',{'font-size':8,'font-family':MONO,fill:'#fff'}));
+		g.appendChild(path('M466,300 L466,282 L228,282 L228,404',{stroke:'#c2413a','stroke-width':1.6,fill:'none','stroke-dasharray':'4 3'}));
+		g.appendChild(path('M466,282 L666,282 L666,268',{stroke:'#c2413a','stroke-width':1.6,fill:'none','stroke-dasharray':'4 3'}));
+		g.appendChild(path('M466,282 L466,240 L436,240',{stroke:'#c2413a','stroke-width':1.6,fill:'none','stroke-dasharray':'4 3'}));
+	}
+
+	/* ---- row 7: above the ceiling ---- */
+	if(L('mua')){
+		const g = grp(S,'mua');
+		g.appendChild(rect(430,68,86,36,'#8d959e')); g.appendChild(rect(434,72,78,28,'#aeb6bf'));
+		for(let i=0;i<5;i++) g.appendChild(line(440+i*16,72,440+i*16,100,'#7d868f',1.5));
+		g.appendChild(rect(452,104,32,148,'#9aa4b0'));
+		g.appendChild(rect(440,252,56,10,'#c9ced4'));
+		[448,464,480].forEach(x=>g.appendChild(path(`M${x},262 l0,14`,{stroke:'#c9ced4','stroke-width':2})));
+		lab(g, 430, 62, 'MAKE-UP AIR ≈ EXHAUST, INTERLOCKED', '#b9c6d4');
+	}
+	if(L('nomua')){
+		const g = grp(S,'nomua');
+		g.appendChild(rect(430,86,86,18,'none',{stroke:'#5a5f66','stroke-width':2,'stroke-dasharray':'6 5'}));
+		g.appendChild(text(436,100,'NOTHING HERE',{'font-size':7,'font-family':MONO,'letter-spacing':.8,fill:'#5a5f66'}));
+		g.appendChild(path('M700,300 l-26,0 m0,0 l8,-6 m-8,6 l8,6',{stroke:'#4b5158','stroke-width':2,fill:'none'}));
+		lab(g, 594, 296, 'THE FRONT DOOR IS THE MAKE-UP AIR', '#5a5f66');
+	}
+	if(L('sprink')){
+		const g = grp(S,'sprink');
+		g.appendChild(path('M136,232 H736',{stroke:'#9aa4b0','stroke-width':4}));
+		[190,290,390,470,560,660,720].forEach(x=>{ g.appendChild(line(x,232,x,250,'#9aa4b0',2)); g.appendChild(mk('circle',{cx:x,cy:252,r:3.4,fill:'#c9ced4'})); });
+		g.appendChild(rect(704,268,26,22,'#c2413a')); g.appendChild(text(707,283,'FA',{'font-size':8,'font-family':MONO,fill:'#fff'}));
+	}
+
+	/* ---- row 8: surfaces, boxes, people ---- */
+	if(L('floor')){
+		const g = grp(S,'floor');
+		g.appendChild(rect(128,432,614,10,'url(#tilepat)'));
+		[140,232,500,600].forEach(x=>{ g.appendChild(path(`M${x-8},432 q8,0 8,-10`,{fill:'none',stroke:'#d8d0c2','stroke-width':4})); g.appendChild(path(`M${x+14},432 q-8,0 -8,-10`,{fill:'none',stroke:'#d8d0c2','stroke-width':4})); });
+		g.appendChild(path('M128,432 q10,0 10,-10 M742,432 q-10,0 -10,-10',{fill:'none',stroke:'#d8d0c2','stroke-width':4}));
+		lab(g, 620, 456, 'QUARRY TILE · COVED BASE', '#8a857a');
+	}
+	if(L('finish')){
+		const g = grp(S,'finish');
+		g.appendChild(rect(128,252,614,6,'#c9c3b4'));                                      // ceiling grid
+		for(let x=148;x<736;x+=42) g.appendChild(line(x,252,x,258,'#9a9789',1));
+		[[128,258,12,174],[236,258,12,174],[494,258,12,174],[606,258,12,174],[730,258,12,174]].forEach(([x,y,w,h])=>g.appendChild(rect(x,y,w,h,'#dfe4e8',{opacity:.55})));
+		[210,410,560,700].forEach(x=>{ g.appendChild(rect(x-14,258,28,7,'#e8e4dc')); g.appendChild(rect(x-11,265,22,3,'#f4f0e4')); });
+	}
+	if(L('walkin')){
+		const g = grp(S,'walkin');
+		g.appendChild(rect(146,268,84,172,'#cfe0da'));
+		g.appendChild(rect(152,274,72,160,'#8fb5ab'));
+		g.appendChild(line(188,268,188,440,'#cfe0da',4));
+		g.appendChild(rect(150,278,76,10,'#e6f0ec'));
+		g.appendChild(path('M188,268 V240 H332',{stroke:'#6fb8a6','stroke-width':5,fill:'none'}));
+		g.appendChild(path('M188,268 V240 H332',{stroke:'#b9dcd2','stroke-width':9,fill:'none',opacity:.35}));
+		g.appendChild(path('M170,434 V462',{stroke:'#b9dcd2','stroke-width':3}));
+	}
+	if(L('line')){
+		const g = grp(S,'line');
+		g.appendChild(rect(252,372,166,60,'#b0b6bd'));
+		g.appendChild(rect(256,376,158,52,'#7f8a96'));
+		[268,306,344,382].forEach(x=>{ g.appendChild(rect(x,368,28,8,'#cfd4da')); g.appendChild(rect(x+4,352,20,16,'#5a616a')); });
+		g.appendChild(rect(424,376,72,56,'#b0b6bd')); g.appendChild(rect(428,380,64,48,'#7f8a96'));
+		[440,460,480].forEach(x=>g.appendChild(rect(x-7,380,14,20,'#5a616a')));
+		[262,300,340,410].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:436,r:3,fill:'#3b4048'})));
+	}
+	if(L('airgap')){
+		const g = grp(S,'airgap');
+		[250,300,430].forEach(x=>{
+			g.appendChild(line(x,404,x,420,'#d9dee4',4));
+			g.appendChild(path(`M${x-8},424 h16 M${x-5},428 l5,5 l5,-5`,{stroke:'#7fa07a','stroke-width':1.6,fill:'none'}));
+		});
+		lab(g, 248, 340, 'AIR GAP = 2× THE PIPE', '#7fa07a');
+	}
+	if(L('hardpipe')){
+		const g = grp(S,'hardpipe');
+		[250,300,430].forEach(x=>{ g.appendChild(line(x,404,x,436,'#d9dee4',5)); g.appendChild(rect(x-6,430,12,6,'#8e949c')); });
+		lab(g, 248, 340, 'PIPE STRAIGHT IN — NO AIR GAP', '#c46a4a');
+	}
+	if(L('restroom')){
+		const g = grp(S,'restroom');
+		g.appendChild(rect(512,392,30,48,'#e6e8ea')); g.appendChild(rect(510,382,34,12,'#f2f4f6'));   // water closet
+		g.appendChild(rect(560,376,34,14,'#e6e8ea'));                                                  // lavatory at 34 in
+		g.appendChild(path('M574,390 v14 h-8',{stroke:'#c9bee6','stroke-width':4,fill:'none'}));        // wrapped trap
+		g.appendChild(rect(508,330,88,7,'#8b79bd')); g.appendChild(rect(546,330,7,34,'#8b79bd'));       // grab bars
+		g.appendChild(mk('circle',{cx:552,cy:412,r:34,fill:'none',stroke:'#8b79bd','stroke-width':1.4,'stroke-dasharray':'5 4'}));
+		lab(g, 508, 322, 'GRAB BARS 33–36 IN', '#c9bee6');
+	}
+	if(L('dining')){
+		const g = grp(S,'dining');
+		[[640],[694]].forEach(([x])=>{
+			g.appendChild(rect(x-26,400,52,6,'#8f6f4b')); g.appendChild(rect(x-3,406,6,34,'#6d5a44'));
+			g.appendChild(rect(x-24,414,8,26,'#4f5560')); g.appendChild(rect(x+16,414,8,26,'#4f5560'));
+		});
+		g.appendChild(rect(614,400,52,6,'#8b79bd'));
+		g.appendChild(path('M612,440 H742',{stroke:'#8b79bd','stroke-width':3,'stroke-dasharray':'6 5'}));
+	}
+
+	/* ---- row 9 & 10 ---- */
+	if(L('exit')){
+		const g = grp(S,'exit');
+		g.appendChild(rect(742,300,18,140,'#3b4048'));
+		g.appendChild(rect(744,304,14,132,'#7f9ab5',{opacity:.5}));
+		g.appendChild(rect(736,354,10,5,'#c2413a'));                                       // panic bar
+		g.appendChild(rect(700,268,40,18,'#2b2f36')); g.appendChild(text(704,281,'EXIT',{'font-size':10,'font-family':MONO,'letter-spacing':1,fill:'#7fa07a'}));
+		g.appendChild(rect(636,268,26,14,'#2b2f36')); [641,655].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:275,r:3,fill:'#f0d98a'})));
+		g.appendChild(path('M714,300 l0,26 m0,0 l-6,-7 m6,7 l6,-7',{stroke:'#7fa07a','stroke-width':2,fill:'none'}));
+	}
+	if(L('extg')){
+		const g = grp(S,'extg');
+		g.appendChild(rect(478,338,16,34,'#c2413a')); g.appendChild(rect(481,332,10,7,'#8e949c'));
+		g.appendChild(text(480,360,'K',{'font-size':11,'font-family':MONO,fill:'#fff'}));
+		g.appendChild(path('M478,356 H400',{stroke:'#f2a8a8','stroke-width':1.2,'stroke-dasharray':'3 3'}));
+	}
+	if(L('stock')){
+		const g = grp(S,'stock');
+		[418,452,486].forEach(x=>{ g.appendChild(rect(x-10,362,9,12,'#e8e4dc')); g.appendChild(rect(x+2,362,9,12,'#f0d98a')); });
+		g.appendChild(rect(160,300,16,20,'#f6f2e8')); g.appendChild(text(163,314,'°F',{'font-size':7,'font-family':MONO,fill:'#161410'}));
+	}
+
+	/* ---- the inspectors ---- */
+	if(L('gate1'))  inspectorFigure(S,1,706,438,'gate1');
+	if(L('gate2'))  inspectorFigure(S,2,250,470,'gate2');
+	if(L('gate3'))  inspectorFigure(S,3,56,438,'gate3');
+	if(L('gate4'))  inspectorFigure(S,4,430,438,'gate4');
+	if(L('gate5'))  inspectorFigure(S,5,402,104,'gate5');
+	if(L('gate6'))  inspectorFigure(S,6,520,438,'gate6');
+	if(L('gate7'))  inspectorFigure(S,7,556,104,'gate7');
+	if(L('gate8'))  inspectorFigure(S,8,200,438,'gate8');
+	if(L('gate9'))  inspectorFigure(S,9,640,438,'gate9');
+	if(L('gate10')) inspectorFigure(S,10,300,438,'gate10');
+}
+
+/* ============================ DINING ROOM ============================ */
+function drawFront(){
+	const E = document.getElementById('ELEV'); E.innerHTML='';
+	const base = mk('g',{}); E.appendChild(base);
+	base.appendChild(rect(0,0,800,440,'#0f141b'));
+	base.appendChild(rect(60,120,680,320,'#141b24'));                                      // the room
+	base.appendChild(rect(0,440,800,120,'#161c24'));                                       // floor
+	base.appendChild(rect(60,104,680,18,'#2b3038'));
+
+	if(L('finish')){
+		const g = grp(E,'finish');
+		g.appendChild(rect(60,120,680,320,'#2f3a33'));
+		g.appendChild(rect(60,120,680,26,'#3a463d'));
+		for(let x=96;x<740;x+=64) g.appendChild(rect(x,126,52,14,'#25302a'));               // ceiling tile grid
+		[170,330,490,650].forEach(x=>{ g.appendChild(rect(x-20,146,40,7,'#e8e4dc')); g.appendChild(rect(x-14,153,28,4,'#f4f0e4',{opacity:.8})); });
+	}
+	if(L('floor')){
+		const g = grp(E,'floor');
+		g.appendChild(rect(0,440,800,120,'url(#tilepat)'));
+		g.appendChild(rect(60,428,680,12,'#c3bba9'));
+	}
+	if(L('line')){
+		const g = grp(E,'line');
+		g.appendChild(rect(232,236,236,116,'#1a2129'));
+		g.appendChild(rect(240,244,220,100,'#3d454e'));                                     // the kitchen you can see
+		g.appendChild(rect(240,244,220,26,'#8d959e'));
+		g.appendChild(rect(258,286,184,42,'#7f8a96'));
+		[286,326,366,406].forEach(x=>g.appendChild(rect(x-10,276,20,10,'#aeb6bf')));
+		g.appendChild(rect(226,230,248,10,'#8f6f4b'));
+		[264,318,372,426].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:250,r:4,fill:'#f0b884'})));
+		lab(g, 232, 226, 'THE PASS');
+	}
+	if(L('restroom')){
+		const g = grp(E,'restroom');
+		g.appendChild(rect(96,246,74,194,'#3a2f26'));
+		g.appendChild(rect(102,252,62,188,'#5a4a3a'));
+		g.appendChild(mk('circle',{cx:156,cy:348,r:4,fill:'#c9c3b4'}));
+		g.appendChild(rect(114,268,38,30,'#e6e2d8'));
+		g.appendChild(mk('circle',{cx:126,cy:283,r:6,fill:'none',stroke:'#2a3a6a','stroke-width':2}));
+		g.appendChild(path('M138,276 h10 M138,283 h10 M138,290 h10',{stroke:'#2a3a6a','stroke-width':1.6}));
+	}
+	if(L('dining')){
+		const g = grp(E,'dining');
+		[[540,1],[640,0],[716,0]].forEach(([x,acc])=>{
+			g.appendChild(mk('ellipse',{cx:x,cy:392,rx:42,ry:9,fill:acc?'#8b79bd':'#8f6f4b'}));
+			g.appendChild(rect(x-4,398,8,42,'#6d5a44'));
+			g.appendChild(mk('ellipse',{cx:x,cy:440,rx:26,ry:6,fill:'#4a3f33'}));
+			g.appendChild(rect(x-56,376,12,64,'#4f5560')); g.appendChild(rect(x+44,376,12,64,'#4f5560'));
+		});
+		g.appendChild(mk('ellipse',{cx:262,cy:392,rx:42,ry:9,fill:'#8b79bd'}));
+		g.appendChild(rect(258,398,8,42,'#6d5a44'));
+		g.appendChild(mk('ellipse',{cx:262,cy:440,rx:26,ry:6,fill:'#4a3f33'}));
+		g.appendChild(rect(206,376,12,64,'#4f5560')); g.appendChild(rect(306,376,12,64,'#4f5560'));
+		lab(g, 206, 366, '5% ACCESSIBLE — 28–34 IN, SPREAD OUT', '#c9bee6');
+	}
+	if(L('exit')){
+		const g = grp(E,'exit');
+		g.appendChild(rect(686,240,54,200,'#20272f'));
+		g.appendChild(rect(692,248,42,184,'#7f9ab5',{opacity:.45}));
+		g.appendChild(rect(692,336,42,6,'#c2413a'));
+		g.appendChild(rect(688,206,50,22,'#2b2f36')); g.appendChild(text(693,222,'EXIT',{'font-size':13,'font-family':MONO,'letter-spacing':1.4,fill:'#7fa07a'}));
+		g.appendChild(rect(618,206,30,16,'#2b2f36')); [625,641].forEach(x=>g.appendChild(mk('circle',{cx:x,cy:214,r:3.4,fill:'#f0d98a'})));
+	}
+	if(L('extg')){
+		const g = grp(E,'extg');
+		g.appendChild(rect(486,300,18,40,'#c2413a')); g.appendChild(rect(489,293,12,8,'#8e949c'));
+		g.appendChild(text(488,326,'K',{'font-size':12,'font-family':MONO,fill:'#fff'}));
+	}
+	if(L('stock')){
+		const g = grp(E,'stock');
+		g.appendChild(rect(206,178,196,44,'#1b232c',{stroke:'#3c4550','stroke-width':1}));
+		g.appendChild(text(216,198,'TODAY',{'font-size':11,'font-family':MONO,'letter-spacing':2,fill:'#d4a24c'}));
+		g.appendChild(path('M216,208 h120 M216,215 h96',{stroke:'#6d6b62','stroke-width':2}));
+	}
+	if(L('permit')) {
+		const g = grp(E,'permit');
+		g.appendChild(rect(700,270,34,44,'#f6f2e8',{stroke:'#6d6b62','stroke-width':1}));
+		g.appendChild(text(703,282,'CO',{'font-size':7,'font-family':MONO,fill:'#161410'}));
+		g.appendChild(path('M703,290 h26 M703,296 h26 M703,302 h16',{stroke:'#a09a8c','stroke-width':1.3}));
+	}
+	if(!L('finish')){
+		const g = mk('g',{}); E.appendChild(g);
+		lab(g, 300, 300, 'NOTHING TO LOOK AT YET', '#4d4a44');
+	}
+}
+
+function redraw(){ drawSection(); drawFront(); applyView(); }
+
+function applyView(){
+	const v = state.view;
+	document.getElementById('SEC').style.display = v==='street' ? 'none' : '';
+	document.getElementById('ELEV').style.display = v==='street' ? '' : 'none';
+	const bands = document.getElementById('bands'); bands.innerHTML='';
+	const litSet = new Set();
+	if(v==='inspector'){ const openGate = PARTS.find(p=>p.gate && !state.placed.has(p.id)); (openGate ? openGate.lit : []).forEach(x=>litSet.add(x)); }
+	document.querySelectorAll('#SEC [data-layer]').forEach(n=>{
+		const layer = n.dataset.layer; n.style.opacity=''; n.style.filter='';
+		if(v==='inspector'){ if(litSet.has(layer)) n.style.filter='url(#glow)'; else if(!/^gate/.test(layer)) n.style.opacity='.18'; }
+	});
+	if(v==='cutaway'){
+		[[16,92,'roof'],[16,200,'above ceiling'],[16,352,'the room'],[152,530,'under the slab']].forEach(([x,y,t])=>bands.appendChild(text(x,y,t,{class:'bandlab'})));
+		bands.appendChild(text(784,20,'section',{class:'bandlab','text-anchor':'end'}));
+	}
+	if(v==='street') bands.appendChild(text(784,20,'from a table',{class:'bandlab','text-anchor':'end'}));
+}
+document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', ()=>{
+	document.querySelectorAll('.toggle button').forEach(x=>x.classList.toggle('on', x===b));
+	state.view = b.dataset.view; applyView();
+	say('', b.dataset.view==='street' ? '<b>The dining room.</b> Tables, a pass, an exit sign. A screwed duct, no make-up air and a hard-piped sink drain look exactly like this too.'
+		: b.dataset.view==='inspector' ? '<b>Inspector view.</b> Only what the open gate checks is lit. If he cannot see it, he cannot pass it.'
+		: '<b>Cutaway.</b> The bay cut end to end — under the slab, the walls, the hood, the ceiling, the room — so you can see every layer you placed.');
+}));
+
+buildRing(); redraw(); score();
+</script>
