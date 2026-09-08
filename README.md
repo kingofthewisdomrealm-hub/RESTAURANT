@@ -5,15 +5,20 @@ Florida restaurant. Same shell as **ROOF Shingle** and **HOUSE Block**: a ring o
 around a building, ten inspection gates in the real order, and traps that look finished
 from a customer's table.
 
-Open `index.html`. No build step, no dependencies, no internet. One HTML file per game.
+Open `index.html`. Two levels, same rules:
 
 ```
 RESTAURANT/
-  index.html              the hub
-  apps/tenant/index.html  the whole game, one file
-  PLAN.md                 the catalog, the engine, the open decisions
-  README.md               this
+  index.html                the hub
+  apps/tenant3d/index.html  the 3D model you can spin  (needs WebGL + three.js from cdnjs)
+  apps/tenant/index.html    the flat one               (no dependencies, no internet)
+  PLAN.md                   the catalog, the engine, the open decisions
+  README.md                 this
 ```
+
+**Reverse** takes the last step back — button, or Ctrl+Z / Cmd+Z. Press it repeatedly to walk
+the restaurant back to an empty bay. A refused drop is not a step, so Reverse never undoes
+something you cannot see.
 
 ## What it teaches
 
@@ -53,6 +58,12 @@ dining room:
 
 The third one is the lesson: it passes every building-department gate on the dial and
 dies at the last one, with staff hired and an opening date announced.
+
+## The three views
+
+- **Cutaway** — a plane cuts the bay down its length. Everything you placed, in order.
+- **Dining room** — stand where a customer stands. All three traps look like this too.
+- **Inspector** — only what the open gate checks is lit. Everything else goes to a ghost.
 
 ## Evidence grades
 

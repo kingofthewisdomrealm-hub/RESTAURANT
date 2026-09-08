@@ -48,7 +48,7 @@ Ring layout carries both HOUSE upgrades: **arc-length spacing** (`spaceRing()`) 
 ## 3. Counts
 
 - **45 tiles** — 32 on the ring, 13 on the paper shelf (3 pre-permit + 10 gates)
-- **10 gates**, **3 traps**
+- **10 gates**, **3 traps**, **two levels** (3D and flat) that share every rule
 - Verified headless: clean playthrough passes 10/10 with 0 leaks and 0 fails; each trap
   burns on exactly its intended gate (sc→5, nm→7, hp→10)
 
@@ -254,3 +254,60 @@ Same recipe that put ROOF and HOUSE live: new public repo named `RESTAURANT`, pu
 files at the root, Settings → Pages → main / root. The result is
 `kingofthewisdomrealm-hub.github.io/RESTAURANT/`, and the sister links in the hub and in
 two tile cards resolve to the ROOF and HOUSE repos automatically.
+
+
+---
+
+## 9. The 3D level (`apps/tenant3d/`)
+
+three.js **r134 UMD from cdnjs** (`three.js/r134/three.min.js` — UMD, exposes a global
+`THREE`; r150+ on cdnjs may be ESM). **Hand-rolled orbit**, no OrbitControls dependency.
+One unit = one foot. ~590 meshes. Textures are drawn into canvases at load, with per-mesh
+repeat matched to the real size of the thing they sit on. If `window.THREE` never arrives,
+the page falls back to a link to the flat level.
+
+**The bay is 44 ft wide × 40 ft deep**, street at +z, back of house at −z, roof deck at
+16 ft, ceiling grid at 10 ft. The kitchen deliberately lives at **x < 0** so the cutaway
+half is the half worth looking at.
+
+- **Cutaway = a real clipping plane** at x = 1.5, normal (−1,0,0), enabled only in that
+  view. It cuts *down the length* of the bay rather than across it, so one section shows
+  the whole sequence: interceptor outside the back → under-slab waste → cook line and hood
+  → ceiling → dining room → storefront.
+- **`site` vs `bay`.** Materials flagged `userData.site` are never clipped. Only the
+  asphalt, the sidewalk and the light pole are `site`. The **bay shell is its own group,
+  `bay`** — always visible, never a tile, but clipped and dimmed like everything else.
+  (First render put the shell in `site`; the cutaway then cut nothing at all.)
+- **Inspector view** ghosts every layer the open gate does not check to 0.07 opacity —
+  *including the bay shell*, or the shell hides the very thing that is lit. Lit layers get
+  a warm `emissive`.
+- **Dining room view hides the inspectors.** A customer does not see them, and that is the
+  point of the view.
+- `flyTo()` moves the **target** as well as the orbit, so the dining-room view can stand
+  inside the room at table height (r ≈ 27) instead of orbiting the outside of a closed box.
+- All layer groups are built **once** at load; `redraw()` only flips `.visible`.
+  `OVERRIDE` handles the one state-dependent layer: the saw-cut trenches close when the
+  new floor goes down.
+
+### Geometry notes for the next level
+1. Openings are real holes: `segs()` splits a wall into the rectangles an opening leaves,
+   and `bayWalls()` + `PARTS_W` feed the same hole lists to every shell (block, FRP, coved
+   base) at a different inset.
+2. Wall and finish thicknesses are exaggerated (~2 in instead of 1/2 in) so the sandwich
+   reads at building scale. Grade ◈ Model.
+3. The `nomua` trap is drawn as **an empty curb** — the absence has to be visible in the
+   cutaway or the trap teaches nothing.
+4. The welded duct shows weld beads as torus rings; the trap duct shows screw heads and a
+   taped seam band. Same box, two readings, and neither is visible from a table.
+
+## 10. Reverse (both levels)
+
+A **Reverse** button left of *Start over*, plus **Ctrl+Z / Cmd+Z**.
+- Every action that **changes the building** pushes one state snapshot (`placed`, `passed`,
+  `burned`, `failedRows`, `leaks`, `fails`) before it runs; Reverse pops and restores.
+- **A leak is not a step** — a refused drop changes nothing, so it never enters the stack.
+- Reversing a passed gate un-stamps it. Reversing a failed gate un-burns the trap, puts the
+  tile back, and returns the fail count. Stamps are **rebuilt from state**, never patched.
+- Messages stay honest: *"in the field a stamp is a stamp — and the state keeps its own
+  file"* / *"on a real job that step is a demo crew, a change order, and a week of the
+  lease."*
