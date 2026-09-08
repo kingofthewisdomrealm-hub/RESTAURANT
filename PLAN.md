@@ -397,3 +397,40 @@ The model wears the job the way a real one does, not as a watermark:
 🚨 **Clipping trap:** the yard sign first vanished in Cutaway because it sits at x = 14 and
 the clip plane keeps x ≤ 1.5. Outdoor furniture must be built with `siteMat()` so it is
 never clipped. The interior plaque was moved to x = −8 so it survives the cut instead.
+
+---
+
+## 13. The card was dead (Sep 8) — and how it hid
+
+*"the build is unresponsive now, please fix it."*
+
+He was right, and it had been broken since the deck first shipped. `startDrag` is bound
+inside `tileNode(p, ring)` — **only to ring tiles.** The deck's `#bigcard` is static markup;
+`renderDeck()` only rewrites its `innerHTML`. So the big card had a `grab` cursor, a hover
+shadow and a gold ready-edge, and **nothing was listening.** Dragging it placed nothing.
+Tapping it opened nothing. Only `Put it in` and the `‹ ›` arrows worked, because those
+buttons have their own listeners.
+
+**Why four passing test files never saw it:** every one of them drove the game through
+JavaScript — `attempt(id)`, `deckStep(1)`, `setMode('ring')`. A JS-driven test cannot see an
+unbound listener or a dead hit area. It only ever tested the engine.
+
+### The fix
+- **The whole deck well is the handle.** `pointerdown` is bound to `#dwrap`, not the card,
+  and `startDrag` falls back to `state.cursor` when the target carries no `dataset.id`.
+  This also fixes a second, subtler deadness: during the 240 ms deal-in animation the card
+  is transformed out from under the pointer, so a tap right after a riffle used to land on
+  the empty `#d3` behind it.
+- `.dedge` gets `pointer-events:none`. An empty deck face is not a card (`if(!id) return`).
+- Enter/Space on the focused card plays it (`click` with `detail === 0`).
+- The hover-out timer that closes the peek now exempts `#deck` — it was closing the card
+  you were standing on, half a second after you opened it.
+
+### 🚨 The standing rule
+**Every interactive element needs a real-pointer test.** `/tmp/rest/testpointer.js` drives
+`page.mouse.move/down/up/click` at measured coordinates and asserts: what `elementFromPoint`
+returns at the card's centre, that a real drag from the card to the model places a card,
+that `Put it in` and the riffle arrows respond to real clicks, that a real tap opens the
+peek, and (3D) that a real drag on the model spins the camera. It found this in one run.
+Note: `e.className` on an SVG node is an `SVGAnimatedString`, which serialises as `{}` —
+resolve hit tests with `closest('#dwrap')`, not by string-matching the class.
