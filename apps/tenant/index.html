@@ -92,7 +92,7 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 .d3{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(7deg) rotateY(-9deg);
 	transition:transform .34s cubic-bezier(.2,.7,.3,1)}
 .dwrap.live .d3{transition:transform .07s linear}
-.dedge{position:absolute;inset:0;border-radius:13px;background:#a9a091;transform:translateZ(-6px);
+.dedge{position:absolute;inset:0;border-radius:13px;background:#a9a091;transform:translateZ(-6px);pointer-events:none;
 	box-shadow:0 0 0 1px rgba(0,0,0,.3)}
 .dstack{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
 .dstack i{position:absolute;inset:0;border-radius:13px;border:1px solid rgba(0,0,0,.22);
@@ -801,7 +801,9 @@ const housebox = document.getElementById('housebox');
 let drag = null;
 function startDrag(e){
 	if(e.button!==undefined && e.button!==0) return;
-	const t = e.currentTarget; const id = t.dataset.id;
+	const t = e.currentTarget;
+	const id = t.dataset.id || (state.mode === 'deck' ? state.cursor : null);
+	if(!id) return;                                         // an empty deck face is not a card
 	drag = {id, x0:e.clientX, y0:e.clientY, moved:false, t};
 	t.setPointerCapture(e.pointerId);
 	t.addEventListener('pointermove', moveDrag);
@@ -993,7 +995,7 @@ document.getElementById('peekclose').addEventListener('click', closePeek);
 peek.addEventListener('pointerenter', ()=>clearTimeout(peekLeaveTimer));
 stage.addEventListener('pointerover', e=>{
 	if(!window.matchMedia('(hover:hover)').matches) return;
-	if(e.target.closest('.tile') || e.target.closest('#peek')) { clearTimeout(peekLeaveTimer); return; }
+	if(e.target.closest('.tile') || e.target.closest('#peek') || e.target.closest('#deck')) { clearTimeout(peekLeaveTimer); return; }
 	clearTimeout(peekLeaveTimer); peekLeaveTimer = setTimeout(()=>{ if(!peek.matches(':hover')) closePeek(); }, 500);
 });
 window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePeek(); document.getElementById('chart').classList.remove('on'); } });
@@ -1153,6 +1155,17 @@ function setMode(m, quiet){
 document.getElementById('dprev').addEventListener('click', ()=>deckStep(-1));
 document.getElementById('dnext').addEventListener('click', ()=>deckStep(1));
 document.getElementById('dplay').addEventListener('click', ()=>{ if(state.cursor) attempt(state.cursor); });
+/* ---- the big card is a card: you can drag it, tap it, or press Enter on it.
+       The whole deck well is live, so a card caught mid-deal is still catchable. ---- */
+(function(){
+	const w = document.getElementById('dwrap'), bc = document.getElementById('bigcard');
+	if(!w || !bc) return;
+	w.addEventListener('pointerdown', startDrag);
+	bc.addEventListener('click', e=>{                       // keyboard only; a mouse tap is handled by endDrag
+		if(e.detail !== 0) return;
+		if(state.cursor) attempt(state.cursor);
+	});
+})();
 document.getElementById('mode').addEventListener('click', ()=>setMode(state.mode==='deck' ? 'ring' : 'deck'));
 document.getElementById('mode').textContent = `See all ${PARTS.length}`;
 window.addEventListener('keydown', e=>{
