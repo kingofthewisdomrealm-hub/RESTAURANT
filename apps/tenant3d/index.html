@@ -90,17 +90,25 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 #stage.deck #deck{display:flex}
 #stage.deck .tile{display:none}
 #stage.deck #dial{display:none}
-.dwrap{position:relative;width:var(--cw);height:var(--ch)}
-.dstack{position:absolute;inset:0;pointer-events:none}
-.dstack i{position:absolute;inset:0;border-radius:13px;border:1px solid var(--hair);background:var(--paper2)}
-.dstack i:nth-child(1){transform:translate(11px,11px) rotate(3.2deg);opacity:.30}
-.dstack i:nth-child(2){transform:translate(7px,7px) rotate(1.9deg);opacity:.48}
-.dstack i:nth-child(3){transform:translate(3.5px,3.5px) rotate(.8deg);opacity:.68}
+.dwrap{position:relative;width:var(--cw);height:var(--ch);margin:6px 16px 24px 2px;perspective:1100px;perspective-origin:50% 42%}
+.d3{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(7deg) rotateY(-9deg);
+	transition:transform .34s cubic-bezier(.2,.7,.3,1)}
+.dwrap.live .d3{transition:transform .07s linear}
+.dedge{position:absolute;inset:0;border-radius:13px;background:#a9a091;transform:translateZ(-6px);
+	box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.dstack{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
+.dstack i{position:absolute;inset:0;border-radius:13px;border:1px solid rgba(0,0,0,.22);
+	background:linear-gradient(158deg,#efe9dc 0%,#ddd5c4 52%,#c6bda9 100%)}
 .card{position:relative;width:var(--cw);height:var(--ch);border-radius:13px;border:1px solid var(--hair);overflow:hidden;
 	color:var(--pink);cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;text-align:left;
 	display:grid;grid-template-rows:auto 1fr auto;padding:11px 13px 12px;
 	box-shadow:0 16px 38px rgba(0,0,0,.55);transition:box-shadow .15s,transform .15s;font:inherit}
-.card:hover{transform:translateY(-2px)}
+.card{backface-visibility:hidden}
+.card .gloss{position:absolute;inset:0;border-radius:13px;pointer-events:none;
+	background:linear-gradient(var(--ga,116deg),rgba(255,255,255,.40) 0%,rgba(255,255,255,.05) 38%,rgba(0,0,0,.09) 100%)}
+.flycard{position:fixed;z-index:60;pointer-events:none;border-radius:13px;overflow:hidden;
+	box-shadow:0 20px 44px rgba(0,0,0,.6)}
+@media (prefers-reduced-motion:reduce){ .d3{transition:none} }
 .card.ready{box-shadow:0 0 0 3px var(--gold),0 16px 38px rgba(0,0,0,.55)}
 .card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .card .bz{font-family:var(--serif);font-size:36px;line-height:.82;font-variant-numeric:tabular-nums}
@@ -125,9 +133,11 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 #dcount b{color:var(--ink);font-weight:600}
 #dplay{background:var(--gold);border:0;color:#17140c;font-weight:600;padding:5px 14px;border-radius:999px;cursor:pointer;font-size:11.5px}
 #dplay[disabled]{background:var(--panel2);color:var(--faint);cursor:not-allowed}
-#ghost .card{position:static;transform:rotate(-4deg);box-shadow:0 22px 46px rgba(0,0,0,.65)}
+#ghost{perspective:900px}
+#ghost .card{position:static;transform:rotateX(9deg) rotateY(-13deg) rotate(-4deg);box-shadow:0 24px 50px rgba(0,0,0,.68)}
 @media (max-width:760px){
 	:root{--cw:136px; --ch:172px}
+	.dwrap{margin:4px 11px 16px 2px;perspective:760px}
 	#stage.deck #msg{max-width:calc(100vw - 24px);font-size:11px;line-height:1.32}
 	.card{padding:8px 9px 9px;border-radius:11px}
 	.card .bz{font-size:25px}
@@ -195,9 +205,12 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 	<svg id="dial" aria-hidden="true"></svg>
 	<div id="housebox"></div>
 	<div id="deck">
-		<div class="dwrap">
-			<div class="dstack"><i></i><i></i><i></i></div>
-			<button class="card" id="bigcard" type="button"></button>
+		<div class="dwrap" id="dwrap">
+			<div class="d3" id="d3">
+				<div class="dstack" id="dstack"></div>
+				<div class="dedge" id="dedge"></div>
+				<button class="card" id="bigcard" type="button"></button>
+			</div>
 		</div>
 		<div class="dnav">
 			<button id="dprev" type="button" aria-label="Previous card" title="Previous card">&lsaquo;</button>
@@ -989,6 +1002,71 @@ document.getElementById('chart').addEventListener('click', e=>{ if(e.target.id==
    THE DECK — every card in one place, dealt in order.
    The ring is still there; it is the other view of the same set.
    ============================================================ */
+/* ---- the deck is a real stack: thickness, tilt, and cards that fly ---- */
+const REST3D = 'rotateX(7deg) rotateY(-9deg)';
+const SLOW = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tilt(rx, ry, live){
+	const d = document.getElementById('d3'); if(!d) return;
+	document.getElementById('dwrap').classList.toggle('live', !!live);
+	d.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+	const bc = document.getElementById('bigcard');
+	if(bc) bc.style.setProperty('--ga', (116 + ry * 2.2).toFixed(1) + 'deg');
+}
+(function(){
+	const w = document.getElementById('dwrap'); if(!w) return;
+	w.addEventListener('pointermove', e=>{
+		if(drag || SLOW) return;
+		const r = w.getBoundingClientRect();
+		const px = (e.clientX - r.left)/r.width - .5, py = (e.clientY - r.top)/r.height - .5;
+		tilt(7 - py*15, -9 + px*20, true);
+	});
+	w.addEventListener('pointerleave', ()=>{ document.getElementById('dwrap').classList.remove('live');
+		const d = document.getElementById('d3'); if(d) d.style.transform = REST3D;
+		const bc = document.getElementById('bigcard'); if(bc) bc.style.setProperty('--ga','116deg'); });
+})();
+/* the stack gets thinner as the cards go in */
+function drawStack(left){
+	const s = document.getElementById('dstack'); if(!s) return;
+	const n = Math.max(0, Math.min(9, Math.round((left - 1) / 5)));
+	if(s.childElementCount !== n){
+		s.innerHTML = '';
+		for(let i=0;i<n;i++) s.appendChild(document.createElement('i'));
+	}
+	[...s.children].forEach((c,i)=>{
+		const k = i + 1;
+		c.style.transform = `translate3d(${(k*1.1).toFixed(1)}px, ${(k*1.5).toFixed(1)}px, ${(-6 - k*3.4).toFixed(1)}px) rotate(${(k*0.5).toFixed(2)}deg)`;
+		c.style.filter = `brightness(${(1 - k*0.045).toFixed(3)})`;
+	});
+}
+/* a placed card leaves the deck and goes into the building */
+function flyCard(html, rect){
+	if(SLOW || state.mode !== 'deck') return;
+	const live = document.querySelectorAll('.flycard');            // never let them pile up
+	for(let i = 0; i <= live.length - 4; i++) live[i].remove();
+	const box = document.getElementById('housebox').getBoundingClientRect();
+	const el = document.createElement('div');
+	el.className = 'flycard';
+	el.style.cssText += `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
+	el.innerHTML = html;
+	const inner = el.firstElementChild;
+	if(inner){ inner.style.width='100%'; inner.style.height='100%'; inner.style.boxShadow='none'; inner.removeAttribute('id'); }
+	document.body.appendChild(el);
+	const dx = (box.left + box.width/2) - (rect.left + rect.width/2);
+	const dy = (box.top + box.height/2) - (rect.top + rect.height/2);
+	el.animate([
+		{transform:'translate3d(0,0,0) rotate(0deg) scale(1)', opacity:1},
+		{transform:`translate3d(${dx*.45}px, ${dy*.45 - 26}px, 0) rotate(-7deg) scale(.78)`, opacity:.95, offset:.45},
+		{transform:`translate3d(${dx}px, ${dy}px, 0) rotate(9deg) scale(.20)`, opacity:0}
+	], {duration:520, easing:'cubic-bezier(.35,.05,.3,1)'}).onfinish = ()=>el.remove();
+}
+function dealIn(dir){
+	if(SLOW) return;
+	const bc = document.getElementById('bigcard'); if(!bc) return;
+	const from = dir ? {transform:`translate3d(${-dir*30}px,0,-40px) rotateY(${dir*24}deg)`, opacity:.15}
+	                 : {transform:'translate3d(0,16px,-70px) rotate(-5deg)', opacity:0};
+	bc.animate([from, {transform:'none', opacity:1}],
+		{duration: dir ? 240 : 300, easing:'cubic-bezier(.2,.75,.3,1)'});
+}
 const LINKMARK = '<span class="cardlink" title="Opens another game"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M3.5 8.5 L8.5 3.5 M4.5 3.5 h4 v4" fill="none" stroke="#161410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
 function deckAvail(){ return SORTED.filter(p=>!state.placed.has(p.id) && !state.burned.has(p.id) && !coveredBy(p)); }
 function deckDeal(){
@@ -1001,7 +1079,7 @@ function deckStep(dir){
 	const av = deckAvail(); if(!av.length) return;
 	let i = av.findIndex(p=>p.id===state.cursor);
 	i = i<0 ? 0 : (i + dir + av.length) % av.length;
-	state.cursor = av[i].id; closePeek(); state.sel = null; renderDeck();
+	state.cursor = av[i].id; closePeek(); state.sel = null; renderDeck._dir = dir; renderDeck();
 }
 function renderDeck(){
 	const bc = document.getElementById('bigcard'); if(!bc) return;
@@ -1011,12 +1089,16 @@ function renderDeck(){
 	const cnt = document.getElementById('dcount');
 	if(!state.cursor){
 		bc.className = 'card empty'; bc.style.background = ''; delete bc.dataset.id;
+		document.getElementById('dedge').style.opacity = '0'; drawStack(0); renderDeck._prev = null;
 		bc.innerHTML = '<span></span><span class="bart"></span><span class="bnm">The deck is empty.<span class="bfam">every card is in the building</span></span>';
 		cnt.innerHTML = `<b>${PARTS.length}</b> of <b>${PARTS.length}</b> cards<br>all <b>${NG}</b> steps done`;
 		play.disabled = true; play.textContent = 'Put it in'; return;
 	}
+	const prev = renderDeck._prev;
 	const p = byId[state.cursor], f = famById[p.fam], r = ROWS[p.row-1];
 	const pos = SORTED.findIndex(x=>x.id===p.id) + 1;
+	if(prev && prev.id !== p.id && (state.placed.has(prev.id) || state.burned.has(prev.id)))
+		flyCard(prev.html, prev.rect);
 	bc.className = 'card' + (ready(p) ? ' ready' : '');
 	bc.style.background = fill(f.hue, f.hueTo);
 	bc.dataset.id = p.id;
@@ -1024,11 +1106,16 @@ function renderDeck(){
 	bc.innerHTML = `<span class="hd"><span class="bz">${p.z}</span><span class="bstep"><i>STEP</i><b>${p.row}</b></span></span>
 		<span class="bart">${artFor(p, '#161410')}</span>
 		<span><span class="bnm">${p.gate ? 'Call the ' + r.label.toLowerCase() + ' inspection' : p.short}${p.link ? LINKMARK : ''}</span>
-		<span class="bfam">${f.label} &middot; ${r.label}</span></span>
-`;
+		<span class="bfam">${f.label} &middot; ${r.label}</span></span><span class="gloss"></span>`;
 	cnt.innerHTML = `Card <b>${pos}</b> of <b>${PARTS.length}</b><br>Step <b>${p.row}</b> of <b>${NG}</b> &middot; <b>${av.length}</b> left`;
 	play.disabled = false;
 	play.textContent = p.gate ? 'Call it in' : 'Put it in';
+	const edge = document.getElementById('dedge');
+	edge.style.opacity = '1'; edge.style.background = f.hueTo;
+	drawStack(av.length);
+	if(!prev || prev.id !== p.id) dealIn(renderDeck._dir || 0);
+	renderDeck._dir = 0;
+	renderDeck._prev = {id:p.id, html:bc.outerHTML, rect:bc.getBoundingClientRect()};
 }
 function setMode(m, quiet){
 	state.mode = m;
