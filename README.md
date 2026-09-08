@@ -20,6 +20,25 @@ RESTAURANT/
 the restaurant back to an empty bay. A refused drop is not a step, so Reverse never undoes
 something you cannot see.
 
+## The deck
+
+The 45 cards sit in a **deck** on the left, not in a ring around the model — the building
+gets the screen. The top card is the next step that is ready. Drag it in, or press
+**Put it in**. The counter under the deck always says where you are:
+
+```
+Card 19 of 45
+Step 5 of 10 · 27 left
+```
+
+Every card is **drawn**, not lettered: the welded duct shows weld beads, the screwed one
+shows screw heads, the missing make-up air shows an empty dashed box. The card number and
+the step number are the two biggest things on it, readable across a truck cab.
+
+- **‹ ›** riffles the deck if you want to play out of order (and find out what that costs)
+- **See all 45** puts every card back in the ring around the building, the old way
+- **The table** opens the periodic grid — the same 45 cards as data
+
 ## What it teaches
 
 A house is a building. A restaurant is a **licence** that happens to live in a building.
@@ -82,5 +101,8 @@ Every card is graded, and the grade is on the card.
 - Florida Building Code 8th Ed. — Mechanical Ch. 5 (Type I hoods, grease ducts, make-up air), Plumbing Ch. 10 (interceptors), Accessibility
 - Florida Fire Prevention Code / IFC 904.13, NFPA 96, NFPA 17A, UL 300
 - Indian River County Utilities — FOG program and interceptor sizing (**call them; the number is local**)
+
+Built by **Covenant Builders**, Vero Beach FL · CBC1253676. The job sign is on the model,
+same as it is on the site.
 
 Not a permit. Not a code book. A training model that tells the truth about the order.

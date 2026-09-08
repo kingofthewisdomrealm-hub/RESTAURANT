@@ -49,6 +49,7 @@ Ring layout carries both HOUSE upgrades: **arc-length spacing** (`spaceRing()`) 
 
 - **45 tiles** — 32 on the ring, 13 on the paper shelf (3 pre-permit + 10 gates)
 - **10 gates**, **3 traps**, **two levels** (3D and flat) that share every rule
+- **Two ways to look at the cards**: the deck (default) and the ring (`See all 45`)
 - Verified headless: clean playthrough passes 10/10 with 0 leaks and 0 fails; each trap
   burns on exactly its intended gate (sc→5, nm→7, hp→10)
 
@@ -311,3 +312,65 @@ A **Reverse** button left of *Start over*, plus **Ctrl+Z / Cmd+Z**.
 - Messages stay honest: *"in the field a stamp is a stamp — and the state keeps its own
   file"* / *"on a real job that step is a demo crew, a change order, and a week of the
   lease."*
+
+
+---
+
+## 11. The deck (both levels)
+
+Josias, Sep 7: *"instead of the tiles surrounding the restaurant, collapse them into a
+convenient place, like cards in a deck, and pull them out sequentially… make each card
+represent their step by how it looks… make the number and the STEP big enough to see at
+first glance."*
+
+**What changed.** The ring is now the *second* view. By default the 45 cards are a deck
+pinned to the left (bottom-centre on a phone), and the model gets the rest of the screen —
+the drawing box went from 745 px wide to **1043 px**, roughly **double the area**.
+
+- `state.mode` is `'deck'` (default) or `'ring'`. `layout()` forks to `layoutDeck()`;
+  everything else — engine, gates, traps, Reverse, the peek, the periodic table — is
+  untouched and shared.
+- `layoutDeck()` **renders the deck first and then measures it** (`offsetWidth/Height`)
+  before placing the model box. Sizing it from constants put the deck off the bottom of a
+  390-px phone; measuring fixed it. A phone also reserves 54 px at the bottom for the score
+  row, or the deck lands on top of the buttons.
+- The deck is **in `z` order**, and the top card is the first *available* card that is
+  `ready()`. `‹ ›` riffles through the available cards, so playing out of order — and
+  taking the leak — is still possible. Both halves of a trap pair sit next to each other at
+  the same `z`, so the choice between them is preserved.
+- Placed, burned and covered cards drop out of the deck. When it empties, the card face
+  says so and **Put it in** disables.
+- The big card is the drag source; the ghost is a clone of the card, not a tile.
+
+### Card faces
+`ART[id]` holds one inline-SVG glyph per card (viewBox `0 0 40 34`, drawn in the family's
+ink). Gates reuse the inspector-with-a-magnifier figure with the gate number in the lens.
+All 45 are covered — a headless test fails the build if any card falls back to its letters.
+
+Typography, since the old tiles were unreadable: the **`z` number is 36 px serif** and the
+**STEP number 21 px** in a dark pill (25 px / 15 px on a phone). The test asserts both
+sizes, so a future restyle cannot quietly shrink them again.
+
+### Two traps this cost
+1. **`.blk` was already taken.** The peek card's info blocks use `.blk`; the new card's link
+   mark reused the name and inherited a border and a dark background — it rendered as a grey
+   box next to the number. Renamed `.cardlink`. **Grep the stylesheet before naming a class
+   in these files.**
+2. **Text inside a glyph collides with the glyph.** "WELD" written across the welded-duct
+   drawing landed on the duct. Say it with marks, not words — the card's name already
+   carries the word.
+
+## 12. Covenant Builders branding
+
+The model wears the job the way a real one does, not as a watermark:
+- **The job sign out front** — posts and a board with the wordmark, "BUILDING THE TREASURE
+  COAST" and CBC1253676. It goes up with the permit and comes down with Reverse. In 3D it is
+  a canvas texture (`brandTex()`); in the flat section it is a banner on the parapet.
+- **The dumpster** carries the same panel, because every real one does.
+- **A plaque by the door** once the finishes are in — visible from a table in the dining view.
+- The brand line in the corner and the footer: *A Covenant Builders training model ·
+  CBC1253676 · not a permit.*
+
+🚨 **Clipping trap:** the yard sign first vanished in Cutaway because it sits at x = 14 and
+the clip plane keeps x ≤ 1.5. Outdoor furniture must be built with `siteMat()` so it is
+never clipped. The interior plaque was moved to x = −8 so it survives the cut instead.
