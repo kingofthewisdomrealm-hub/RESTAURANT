@@ -142,7 +142,7 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 <div id="stage" aria-label="The 3D restaurant, with every part around it">
 	<svg id="dial" aria-hidden="true"></svg>
 	<div id="housebox"></div>
-	<p id="msg">Drag a part into the space. <b>Drag the house to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.</p>
+	<p id="msg">Drag a part into the space. <b>Drag the model to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.</p>
 
 	<div class="corner" id="tl">
 		<div class="brand">RESTAURANT <em>Build-Out 3D</em><small>Treasure Coast tenant space &middot; crew edition</small></div>
@@ -697,7 +697,7 @@ function attempt(id, e){
 		say('leak', `<b>Leak.</b> ${why}`); openPeek(id, {leak:why});
 		score(); return;
 	}
-	past.push({s:snap(), id});                 // from here on the house changes — remember how it looked
+	past.push({s:snap(), id});                 // from here on the building changes — remember how it looked
 	if(p.gate){
 		const burn = (p.failsIf||[]).filter(t=>state.placed.has(t));
 		if(burn.length){
@@ -742,7 +742,7 @@ function finish(){
 function resetAll(){
 	state.placed.clear(); state.passed.clear(); state.burned.clear(); state.failedRows.clear(); state.leaks=0; state.fails=0; state.sel=null; past.length=0;
 	document.getElementById('stamps').innerHTML=''; document.getElementById('done').classList.remove('on'); closePeek();
-	say('', 'Drag a part into the space. <b>Drag the house to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.');
+	say('', 'Drag a part into the space. <b>Drag the model to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.');
 	redraw(); refreshTiles(); score();
 }
 document.getElementById('reset').addEventListener('click', resetAll);
