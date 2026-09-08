@@ -434,3 +434,38 @@ that `Put it in` and the riffle arrows respond to real clicks, that a real tap o
 peek, and (3D) that a real drag on the model spins the camera. It found this in one run.
 Note: `e.className` on an SVG node is an `SVGAnimatedString`, which serialises as `{}` —
 resolve hit tests with `closest('#dwrap')`, not by string-matching the class.
+
+
+---
+
+## 14. The cards speak in orders now (Sep 8)
+
+His standing rule from HOUSE, finally applied here: **a card is an instruction to the man
+who is about to go do the thing, not a description of an event.** All 45 cards rewritten,
+both levels. The Spec block heading is now **"What you do"** on every card, gates included.
+
+Before → after:
+
+> *Building permit with sealed plans, plus separate permits pulled by the licensed subs…*
+> **You pull the master building permit with the sealed plans. Then you make each licensed
+> sub pull his own: plumbing, electrical, mechanical, gas, fire suppression for the hood
+> system…**
+
+Rules held:
+- **Second person, present tense, verb first.** Say who does it — *you* set it, *he* checks
+  it, *the utility* releases the meter. No passive voice, no noun-phrase inventories.
+- **Gates are instructions too.** *"You call in the underground plumbing inspection, and you
+  call it before anybody talks about concrete."* Calling the inspection IS a step.
+- **Fails stay warnings but go second person.** *"Pour over it before he comes and you rent
+  a saw and start again."*
+- **Law is left alone.** It is the line he repeats on the ladder, not an order.
+- **Every number survives.** A quarter inch per foot, 16-gauge, 75 feet, 10–20 ft and 42–48
+  in., 30 feet, 33–36 in., 16–18 in., 34 in., 60-inch circle, five percent, 28–34 in., 36
+  in., 15 sq ft per person, 1,000–1,500 gallons, 180°F, 18 months, ~30 days, 50 or more.
+  A verification pass diffs the numeric tokens of every card against the previous version;
+  stripping a spec number to make a sentence flow is a defect, not a style choice.
+- **Curly apostrophes only.** Card text lives in single-quoted JS strings and a straight
+  apostrophe breaks the file silently.
+
+Two cards carry an embedded cross-link (`dm` → HOUSE, `ef` → ROOF) built by string
+concatenation. Those were rewritten around the link, never through it.

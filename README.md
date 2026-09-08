@@ -42,6 +42,21 @@ the step number are the two biggest things on it, readable across a truck cab.
 - **See all 45** puts every card back in the ring around the building, the old way
 - **The table** opens the periodic grid — the same 45 cards as data
 
+## The cards give orders
+
+Open a card and the block is headed **What you do**, because that is what it is. Not
+*"Master building permit with sealed plans, plus separate permits pulled by the licensed
+subs"* — that is a parts list you have to translate at 6 a.m. It reads:
+
+> **You pull the master building permit with the sealed plans. Then you make each licensed
+> sub pull his own: plumbing, electrical, mechanical, gas, fire suppression for the hood
+> system, and fire alarm or sprinkler if the building has them.**
+
+Second person, present tense, and it names who does it — you set it, he checks it, the
+utility releases the meter. The gates are orders too, because calling the inspection is a
+step: *"You call in the underground plumbing inspection, and you call it before anybody
+talks about concrete."* Every number in the old wording is still in the new one.
+
 ## What it teaches
 
 A house is a building. A restaurant is a **licence** that happens to live in a building.
