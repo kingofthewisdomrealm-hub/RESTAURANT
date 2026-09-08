@@ -82,6 +82,58 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 #ghost{position:fixed;z-index:50;pointer-events:none;width:var(--tw);height:var(--th);display:none;opacity:.95}
 #ghost .tile{position:static;transform:rotate(-4deg);box-shadow:0 18px 40px rgba(0,0,0,.6)}
 
+/* ---------- the deck: the cards collapsed into one place ---------- */
+:root{--cw:196px; --ch:246px}
+#deck{position:absolute;z-index:7;display:none;flex-direction:column;gap:9px;align-items:center}
+#stage.deck #deck{display:flex}
+#stage.deck .tile{display:none}
+#stage.deck #dial{display:none}
+.dwrap{position:relative;width:var(--cw);height:var(--ch)}
+.dstack{position:absolute;inset:0;pointer-events:none}
+.dstack i{position:absolute;inset:0;border-radius:13px;border:1px solid var(--hair);background:var(--paper2)}
+.dstack i:nth-child(1){transform:translate(11px,11px) rotate(3.2deg);opacity:.30}
+.dstack i:nth-child(2){transform:translate(7px,7px) rotate(1.9deg);opacity:.48}
+.dstack i:nth-child(3){transform:translate(3.5px,3.5px) rotate(.8deg);opacity:.68}
+.card{position:relative;width:var(--cw);height:var(--ch);border-radius:13px;border:1px solid var(--hair);overflow:hidden;
+	color:var(--pink);cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;text-align:left;
+	display:grid;grid-template-rows:auto 1fr auto;padding:11px 13px 12px;
+	box-shadow:0 16px 38px rgba(0,0,0,.55);transition:box-shadow .15s,transform .15s;font:inherit}
+.card:hover{transform:translateY(-2px)}
+.card.ready{box-shadow:0 0 0 3px var(--gold),0 16px 38px rgba(0,0,0,.55)}
+.card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.card .bz{font-family:var(--serif);font-size:36px;line-height:.82;font-variant-numeric:tabular-nums}
+.card .bstep{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(22,20,16,.88);
+	color:var(--paper);padding:5px 9px 6px;border-radius:9px;white-space:nowrap}
+.card .bstep i{font-family:var(--mono);font-size:7.5px;letter-spacing:.2em;font-style:normal;opacity:.8}
+.card .bstep b{font-family:var(--serif);font-size:21px;line-height:.85;font-weight:400}
+.card .bart{align-self:center;justify-self:center;width:88%;height:100%;min-height:0;display:block;margin:5px 0}
+.card .bart svg{display:block;width:100%;height:100%}
+.card>span:nth-child(2){min-height:0}
+.card .bnm{font-family:var(--serif);font-size:17px;line-height:1.1}
+.card .bfam{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-top:4px}
+.card .cardlink{display:inline-block;width:11px;height:11px;line-height:0;vertical-align:-1px;margin-left:4px;opacity:.55}
+.card.empty{background:var(--panel2)!important;color:var(--dim);cursor:default;align-content:center;text-align:center;box-shadow:none;border-style:dashed}
+.card.empty .bnm{font-size:15px;color:var(--ink)}
+.dnav{display:flex;align-items:center;gap:7px}
+.dnav button{background:rgba(21,23,31,.9);border:1px solid var(--line);color:var(--ink);width:26px;height:26px;
+	border-radius:50%;cursor:pointer;font-size:14px;line-height:1;padding:0;display:grid;place-items:center}
+.dnav button:hover{border-color:var(--gold);color:var(--gold)}
+#dcount{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);
+	text-align:center;min-width:calc(var(--cw) - 74px);line-height:1.5}
+#dcount b{color:var(--ink);font-weight:600}
+#dplay{background:var(--gold);border:0;color:#17140c;font-weight:600;padding:5px 14px;border-radius:999px;cursor:pointer;font-size:11.5px}
+#dplay[disabled]{background:var(--panel2);color:var(--faint);cursor:not-allowed}
+#ghost .card{position:static;transform:rotate(-4deg);box-shadow:0 22px 46px rgba(0,0,0,.65)}
+@media (max-width:760px){
+	:root{--cw:136px; --ch:172px}
+	#stage.deck #msg{max-width:calc(100vw - 24px);font-size:11px;line-height:1.32}
+	.card{padding:8px 9px 9px;border-radius:11px}
+	.card .bz{font-size:25px}
+	.card .bstep{padding:3px 6px 4px}.card .bstep b{font-size:15px}.card .bstep i{font-size:6.5px}
+	.card .bnm{font-size:12.5px}.card .bfam{font-size:6.8px}
+	#dcount{font-size:8px;min-width:calc(var(--cw) - 66px)}
+}
+
 /* ---------- the peek (the card, anchored to the tile) ---------- */
 #peek{position:fixed;z-index:40;width:19rem;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;display:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #peek.on{display:block}
@@ -156,22 +208,35 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 			<g id="bands"></g>
 		</svg>
 	</div>
-	<p id="msg">Drag a part into the space. Hover a tile to read it. <b>Gold ring = ready now.</b> Reverse takes the last step back.</p>
+	<div id="deck">
+		<div class="dwrap">
+			<div class="dstack"><i></i><i></i><i></i></div>
+			<button class="card" id="bigcard" type="button"></button>
+		</div>
+		<div class="dnav">
+			<button id="dprev" type="button" aria-label="Previous card" title="Previous card">&lsaquo;</button>
+			<span id="dcount"></span>
+			<button id="dnext" type="button" aria-label="Next card" title="Next card">&rsaquo;</button>
+		</div>
+		<button id="dplay" type="button">Put it in</button>
+	</div>
+	<p id="msg">Drag the top card in, or press <b>Put it in</b>. Gold edge = ready.</p>
 
 	<div class="corner" id="tl">
-		<div class="brand">RESTAURANT <em>Build-Out</em><small>Treasure Coast tenant space &middot; crew edition</small></div>
+		<div class="brand">RESTAURANT <em>Build-Out</em><small>Covenant Builders &middot; Treasure Coast &middot; crew edition</small></div>
 		<div class="toggle" role="tablist" aria-label="View">
 			<button data-view="cutaway" class="on">Cutaway</button>
 			<button data-view="street">Dining room</button>
 			<button data-view="inspector">Inspector</button>
 		</div>
+		<button class="ghost" id="mode" style="width:max-content">See all 45</button>
 	</div>
 	<div class="corner" id="tr"><div id="stamps"></div></div>
 	<div class="corner" id="bl">
 		<span class="score" id="score">Gates 0/10 &middot; Leaks 0 &middot; Failed gates 0</span>
 		<div style="display:flex;gap:6px"><button class="ghost" id="undo" disabled title="Take the last step back (Ctrl+Z)">&#8630; Reverse</button><button class="ghost" id="reset">Start over</button><button class="ghost" id="showchart">The table</button></div>
 	</div>
-	<div class="corner" id="br"><span class="foot">Gates follow the code chain a Florida restaurant actually walks: <a href="https://www2.myfloridalicense.com/hotels-restaurants/licensing/plan-review/" target="_blank" rel="noopener">DBPR plan review</a>, FBC 8th Ed., NFPA 96 and the fire marshal. A training model, not a permit.</span></div>
+	<div class="corner" id="br"><span class="foot">Gates follow the code chain a Florida restaurant actually walks: <a href="https://www2.myfloridalicense.com/hotels-restaurants/licensing/plan-review/" target="_blank" rel="noopener">DBPR plan review</a>, FBC 8th Ed., NFPA 96 and the fire marshal. A Covenant Builders training model &#183; CBC1253676 &#183; not a permit.</span></div>
 </div>
 
 <div id="peek" role="dialog" aria-label="Part card"><button class="close" id="peekclose" aria-label="Close">×</button><div id="peekbody"></div></div>
@@ -478,7 +543,7 @@ const NG = ROWS.length;
 /* ============================================================
    STATE
    ============================================================ */
-const state = {placed:new Set(), leaks:0, fails:0, passed:new Set(), burned:new Set(), failedRows:new Set(), view:'cutaway', sel:null};
+const state = {placed:new Set(), leaks:0, fails:0, passed:new Set(), burned:new Set(), failedRows:new Set(), view:'cutaway', sel:null, mode:'deck', cursor:null};
 const stage = document.getElementById('stage');
 const SORTED = PARTS.slice().sort((a,b)=>a.z-b.z || (a.trap?1:0)-(b.trap?1:0));
 const ORDER = SORTED.filter(p=>p.fam!=='pp');        // the ring: what goes on the house
@@ -521,6 +586,61 @@ function permitSVG(ink){
 		<circle cx="21" cy="24" r="3.2" fill="none" stroke="#b3382a" stroke-width="1.6"/>
 	</svg>`;
 }
+/* ============================================================
+   CARD ART — one drawing per step, so a card is recognised
+   before it is read. viewBox 0 0 40 34, drawn in the family ink.
+   ============================================================ */
+const ART = {
+	/* ---- paper ---- */
+	zo: k=>`<rect x="2" y="12" width="13" height="18" rx="1" fill="none" stroke="${k}" stroke-width="2"/><path d="M2 12 8.5 6 15 12" fill="none" stroke="${k}" stroke-width="2" stroke-linejoin="round"/><rect x="25" y="12" width="13" height="18" rx="1" fill="${k}" opacity=".55"/><path d="M25 12 31.5 6 38 12" fill="${k}" opacity=".55"/><path d="M17 20 h6 m-2.5 -2.5 2.5 2.5 -2.5 2.5" fill="none" stroke="${k}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+	dp: k=>`<rect x="7" y="4" width="26" height="27" rx="2" fill="none" stroke="${k}" stroke-width="2"/><rect x="15" y="1.5" width="10" height="5" rx="1.5" fill="${k}"/><path d="M13 14 v9 M13 14 c-1.6 0 -1.6 4 0 4" fill="none" stroke="${k}" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14 v3 m3 -3 v3 m-3 3 v6 m0 -6 h3 v-3" fill="none" stroke="${k}" stroke-width="1.6" stroke-linecap="round"/><path d="M24 13 h7 M24 18 h7 M24 23 h4" stroke="${k}" stroke-width="1.6" stroke-linecap="round"/>`,
+	bp: k=>`<path d="M8 3 h13 l6 6 v22 h-19 z" fill="none" stroke="${k}" stroke-width="2" stroke-linejoin="round"/><path d="M21 3 v6 h6" fill="none" stroke="${k}" stroke-width="2" stroke-linejoin="round"/><path d="M12 15 h11 M12 19 h11 M12 23 h7" stroke="${k}" stroke-width="1.7" stroke-linecap="round"/><circle cx="27" cy="25" r="5.5" fill="none" stroke="#b3382a" stroke-width="2"/><path d="M24 25 h6" stroke="#b3382a" stroke-width="1.6"/>`,
+	/* ---- shell ---- */
+	dm: k=>`<rect x="2" y="21" width="36" height="9" fill="${k}" opacity=".28"/><path d="M13 21 v9 M27 21 v9" stroke="${k}" stroke-width="2"/><path d="M13 25.5 h14" stroke="${k}" stroke-width="2" stroke-dasharray="3 2"/><circle cx="20" cy="11" r="7.5" fill="none" stroke="${k}" stroke-width="2"/><path d="M20 3.5 v3 M27.5 11 h-3 M12.5 11 h3 M20 18.5 v-3 M25.3 5.7 l-2.1 2.1 M14.7 16.3 l2.1 -2.1 M25.3 16.3 l-2.1 -2.1 M14.7 5.7 l2.1 2.1" stroke="${k}" stroke-width="1.8" stroke-linecap="round"/>`,
+	/* ---- waste ---- */
+	gw: k=>`<path d="M2 26 h36" stroke="${k}" stroke-width="1.4" stroke-dasharray="2 2" opacity=".5"/><rect x="2" y="7" width="36" height="5" rx="2.5" fill="#c9a24c"/><rect x="2" y="17" width="36" height="5" rx="2.5" fill="${k}" opacity=".6"/><path d="M11 7 v-4 M27 17 v-4" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/><text x="20" y="32" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6" fill="${k}">2 SYSTEMS</text>`,
+	fd: k=>`<rect x="7" y="10" width="26" height="18" rx="1.5" fill="none" stroke="${k}" stroke-width="2.2"/><rect x="11" y="14" width="18" height="10" fill="${k}" opacity=".35"/><path d="M11 16.5 h18 M11 19 h18 M11 21.5 h18" stroke="${k}" stroke-width="1.2"/><path d="M4 10 h32" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/><path d="M20 2 v6" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/>`,
+	gi: k=>`<path d="M2 12 h36 v14 a3 3 0 0 1 -3 3 h-30 a3 3 0 0 1 -3 -3 z" fill="none" stroke="${k}" stroke-width="2"/><path d="M4 17 h32" stroke="#8a7c2e" stroke-width="3.4"/><path d="M20 12 v17" stroke="${k}" stroke-width="2"/><rect x="6" y="6" width="8" height="6" rx="1" fill="${k}"/><rect x="26" y="6" width="8" height="6" rx="1" fill="${k}"/><path d="M2 6 h36" stroke="${k}" stroke-width="1.4" stroke-dasharray="3 2"/>`,
+	bf: k=>`<path d="M2 20 h36" stroke="${k}" stroke-width="3.4" stroke-linecap="round"/><rect x="9" y="13" width="7" height="14" rx="1.5" fill="${k}"/><rect x="24" y="13" width="7" height="14" rx="1.5" fill="${k}"/><circle cx="20" cy="9" r="4.5" fill="none" stroke="${k}" stroke-width="2"/><path d="M20 9 l2.6 -2.2" stroke="${k}" stroke-width="1.6" stroke-linecap="round"/><path d="M20 13.5 v6" stroke="${k}" stroke-width="2"/>`,
+	/* ---- rough ---- */
+	wl: k=>`<path d="M3 5 h34 M3 29 h34" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/><path d="M8 5 v24 M16 5 v24 M24 5 v24 M32 5 v24" stroke="${k}" stroke-width="2.2"/><path d="M16 15 h8" stroke="${k}" stroke-width="2.2"/>`,
+	bl: k=>`<path d="M6 4 v26 M34 4 v26" stroke="${k}" stroke-width="2.2" opacity=".45"/><rect x="4" y="13" width="32" height="7" rx="1" fill="${k}"/><path d="M11 13 v7 M18 13 v7 M25 13 v7 M32 13 v7" stroke="#fff" stroke-width="1" opacity=".45"/><circle cx="9" cy="16.5" r="1.5" fill="#fff" opacity=".8"/><circle cx="31" cy="16.5" r="1.5" fill="#fff" opacity=".8"/>`,
+	el: k=>`<rect x="9" y="3" width="22" height="28" rx="2" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M12 9 h7 M22 9 h6 M12 14 h7 M22 14 h6 M12 19 h7 M22 19 h6 M12 24 h7 M22 24 h6" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/><path d="M20 3 v28" stroke="${k}" stroke-width="1.2" opacity=".5"/>`,
+	rp: k=>`<path d="M6 9 h28 v4 a4 4 0 0 1 -4 4 h-20 a4 4 0 0 1 -4 -4 z" fill="none" stroke="${k}" stroke-width="2"/><path d="M20 17 v5 a4 4 0 0 0 8 0 v-4" fill="none" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/><path d="M13 9 v-5 a4 4 0 0 1 8 0" fill="none" stroke="${k}" stroke-width="2.2" stroke-linecap="round"/><path d="M8 30 h24" stroke="${k}" stroke-width="1.6" opacity=".4"/>`,
+	gl: k=>`<path d="M2 24 h36" stroke="${k}" stroke-width="3.2" stroke-linecap="round"/><path d="M12 24 v-4 M28 24 v-4" stroke="${k}" stroke-width="2.4"/><circle cx="20" cy="24" r="3.4" fill="${k}"/><path d="M20 20.6 v-3" stroke="${k}" stroke-width="2"/><path d="M12 17 c0 -4 4 -4 3 -9 c4 3 5 6 3 9 z" fill="#c9762a"/><path d="M28 17 c0 -4 4 -4 3 -9 c4 3 5 6 3 9 z" fill="#c9762a"/>`,
+	/* ---- hood ---- */
+	hb: k=>`<path d="M3 6 h34 l-5 12 h-24 z" fill="none" stroke="${k}" stroke-width="2.2" stroke-linejoin="round"/><path d="M13 9 l-2 7 M20 9 l-1 7 M27 9 l1 7" stroke="${k}" stroke-width="1.8"/><path d="M9 18 h22" stroke="${k}" stroke-width="2"/><rect x="12" y="24" width="16" height="7" rx="1" fill="${k}" opacity=".55"/><circle cx="16" cy="24" r="1.6" fill="${k}"/><circle cx="24" cy="24" r="1.6" fill="${k}"/>`,
+	gd: k=>`<rect x="12" y="2" width="16" height="30" rx="1" fill="none" stroke="${k}" stroke-width="2.4"/><path d="M12 10 q4 -2.4 8 0 q4 2.4 8 0 M12 20 q4 -2.4 8 0 q4 2.4 8 0" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M31 7 l5 -3.5 M31 17 l5 -3.5 M31 27 l5 -3.5" stroke="#7fa07a" stroke-width="2.2" stroke-linecap="round"/><path d="M4 9 l5 3.5 M4 19 l5 3.5" stroke="#7fa07a" stroke-width="2.2" stroke-linecap="round"/>`,
+	sc: k=>`<rect x="12" y="2" width="16" height="30" rx="1" fill="none" stroke="${k}" stroke-width="2.4"/><path d="M12 10 h16 M12 20 h16" stroke="${k}" stroke-width="2.6"/><circle cx="15" cy="10" r="1.5" fill="#c46a4a"/><circle cx="20" cy="10" r="1.5" fill="#c46a4a"/><circle cx="25" cy="10" r="1.5" fill="#c46a4a"/><circle cx="15" cy="20" r="1.5" fill="#c46a4a"/><circle cx="20" cy="20" r="1.5" fill="#c46a4a"/><circle cx="25" cy="20" r="1.5" fill="#c46a4a"/>`,
+	dw: k=>`<rect x="15" y="4" width="10" height="26" fill="none" stroke="${k}" stroke-width="2"/><rect x="9" y="1" width="22" height="32" rx="2" fill="none" stroke="${k}" stroke-width="3.4" opacity=".55"/><path d="M9 8 h22 M9 16 h22 M9 24 h22" stroke="${k}" stroke-width="1.2" opacity=".5"/>`,
+	ef: k=>`<path d="M2 26 h36" stroke="${k}" stroke-width="2.6"/><rect x="12" y="20" width="16" height="6" fill="${k}" opacity=".45"/><path d="M11 20 h18 l-4 -9 h-10 z" fill="none" stroke="${k}" stroke-width="2.2" stroke-linejoin="round"/><path d="M20 11 v-4 M20 3 l-3 3.5 M20 3 l3 3.5" fill="none" stroke="${k}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+	/* ---- fire ---- */
+	an: k=>`<rect x="4" y="8" width="11" height="21" rx="3" fill="${k}"/><path d="M9.5 8 v-4" stroke="${k}" stroke-width="2.4"/><path d="M15 12 h9" stroke="${k}" stroke-width="2.2"/><path d="M24 12 v4" stroke="${k}" stroke-width="2.2"/><path d="M24 16 l-3 6 M24 16 l3 6 M24 16 l0 7" stroke="${k}" stroke-width="1.8" stroke-linecap="round"/><rect x="18" y="27" width="16" height="4" rx="1" fill="${k}" opacity=".45"/><text x="9.5" y="23" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="700" fill="#fff">K</text>`,
+	fl: k=>`<path d="M3 7 h34" stroke="${k}" stroke-width="1.8" stroke-dasharray="3 2"/><rect x="7" y="4.5" width="5" height="5" fill="${k}"/><rect x="17.5" y="4.5" width="5" height="5" fill="${k}"/><rect x="28" y="4.5" width="5" height="5" fill="${k}"/><rect x="14" y="15" width="12" height="12" rx="1.5" fill="none" stroke="${k}" stroke-width="2.2"/><rect x="17" y="18" width="6" height="4" fill="${k}"/><path d="M20 22 v6" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/>`,
+	il: k=>`<path d="M2 22 h13 M25 22 h13" stroke="${k}" stroke-width="3" stroke-linecap="round"/><rect x="15" y="16" width="10" height="12" rx="1.5" fill="${k}"/><path d="M20 16 v-4" stroke="${k}" stroke-width="2.2"/><path d="M22 2 l-6 9 h4 l-2 7 6 -9 h-4 z" fill="#c9762a" stroke="${k}" stroke-width="1"/>`,
+	sp: k=>`<path d="M4 6 h32" stroke="${k}" stroke-width="3" stroke-linecap="round"/><path d="M14 6 v6 M26 6 v6" stroke="${k}" stroke-width="2"/><path d="M10.5 12 h7 M22.5 12 h7" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/><path d="M12 17 l-1.5 5 M14 17 l0 6 M16 17 l1.5 5 M24 17 l-1.5 5 M26 17 l0 6 M28 17 l1.5 5" stroke="${k}" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>`,
+	ex: k=>`<rect x="4" y="4" width="15" height="26" rx="1" fill="none" stroke="${k}" stroke-width="2.2"/><circle cx="16" cy="17" r="1.6" fill="${k}"/><rect x="3" y="15" width="17" height="3" rx="1.5" fill="#c2413a"/><rect x="23" y="7" width="15" height="8" rx="1.5" fill="${k}"/><text x="30.5" y="13.4" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6" letter-spacing=".5" fill="#e8f0e4">EXIT</text><path d="M30.5 17 v6 m0 0 l-2.5 -3 m2.5 3 l2.5 -3" fill="none" stroke="${k}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+	ke: k=>`<rect x="13" y="8" width="14" height="23" rx="3" fill="${k}"/><rect x="17" y="3" width="6" height="5" rx="1.5" fill="${k}"/><path d="M27 12 l6 -4" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/><text x="20" y="25" text-anchor="middle" font-family="Iowan Old Style,Palatino,Georgia,serif" font-size="15" font-weight="700" fill="#fff">K</text>`,
+	/* ---- make-up air ---- */
+	ma: k=>`<rect x="9" y="4" width="22" height="12" rx="2" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M13 4 v12 M17 4 v12 M21 4 v12 M25 4 v12" stroke="${k}" stroke-width="1.6"/><path d="M20 16 v6" stroke="${k}" stroke-width="2.6"/><path d="M11 24 h18" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/><path d="M15 27 v4 M20 27 v4 M25 27 v4" stroke="${k}" stroke-width="2" stroke-linecap="round"/>`,
+	nm: k=>`<rect x="7" y="9" width="26" height="15" rx="2" fill="none" stroke="${k}" stroke-width="2.2" stroke-dasharray="4 3"/><path d="M14 14 l12 6 M26 14 l-12 6" stroke="${k}" stroke-width="1.6" opacity=".6"/><text x="20" y="31" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6.5" fill="${k}">NOTHING</text>`,
+	/* ---- cold ---- */
+	wk: k=>`<rect x="6" y="3" width="28" height="28" rx="2" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M22 3 v28" stroke="${k}" stroke-width="2"/><circle cx="24.5" cy="17" r="1.6" fill="${k}"/><path d="M14 10 v14 M8 17 h12 M9.7 12.7 l8.6 8.6 M18.3 12.7 l-8.6 8.6" stroke="${k}" stroke-width="1.8" stroke-linecap="round"/>`,
+	/* ---- finish / equipment ---- */
+	qt: k=>`<path d="M4 22 h32" stroke="${k}" stroke-width="2.4"/><path d="M4 27 h32" stroke="${k}" stroke-width="1.4" opacity=".5"/><path d="M12 22 v9 M20 22 v9 M28 22 v9" stroke="${k}" stroke-width="1.4" opacity=".5"/><path d="M6 4 v14 q0 4 4 4" fill="none" stroke="${k}" stroke-width="3.2" stroke-linecap="round"/><path d="M34 4 v14 q0 4 -4 4" fill="none" stroke="${k}" stroke-width="3.2" stroke-linecap="round"/><text x="20" y="14" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6.5" fill="${k}">COVED</text>`,
+	fr: k=>`<rect x="3" y="4" width="20" height="26" rx="1" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M9.7 4 v26 M16.3 4 v26" stroke="${k}" stroke-width="1.4" opacity=".55"/><path d="M27 8 h10 l-2 6 h-6 z" fill="none" stroke="${k}" stroke-width="2" stroke-linejoin="round"/><path d="M29 14 h6" stroke="${k}" stroke-width="2.4"/><path d="M32 18 v4 M28.5 18.5 l-1.5 3 M35.5 18.5 l1.5 3" stroke="${k}" stroke-width="1.6" stroke-linecap="round"/>`,
+	eq: k=>`<rect x="4" y="10" width="32" height="21" rx="2" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M4 17 h32" stroke="${k}" stroke-width="2"/><circle cx="11" cy="13.5" r="1.6" fill="${k}"/><circle cx="17" cy="13.5" r="1.6" fill="${k}"/><circle cx="23" cy="13.5" r="1.6" fill="${k}"/><circle cx="29" cy="13.5" r="1.6" fill="${k}"/><rect x="9" y="21" width="22" height="7" rx="1" fill="${k}" opacity=".4"/><path d="M13 5 c0 -2 2 -2 1.5 -4 M20 5 c0 -2 2 -2 1.5 -4 M27 5 c0 -2 2 -2 1.5 -4" fill="none" stroke="${k}" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`,
+	ag: k=>`<path d="M20 2 v10" stroke="${k}" stroke-width="3.4" stroke-linecap="round"/><path d="M8 22 h24 v6 a2 2 0 0 1 -2 2 h-20 a2 2 0 0 1 -2 -2 z" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M8 22 h24" stroke="${k}" stroke-width="2.6"/><path d="M12 17 h16" stroke="#7fa07a" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M14 14 v6 m0 0 l-2 -2.5 m2 2.5 l2 -2.5 M26 20 v-6 m0 0 l-2 2.5 m2 -2.5 l2 2.5" fill="none" stroke="#7fa07a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`,
+	hp: k=>`<path d="M20 2 v22" stroke="${k}" stroke-width="3.4" stroke-linecap="round"/><path d="M8 22 h24 v6 a2 2 0 0 1 -2 2 h-20 a2 2 0 0 1 -2 -2 z" fill="none" stroke="${k}" stroke-width="2.2"/><path d="M8 22 h24" stroke="${k}" stroke-width="2.6"/><circle cx="20" cy="16" r="6" fill="none" stroke="#c46a4a" stroke-width="2"/><path d="M15.8 20.2 L24.2 11.8" stroke="#c46a4a" stroke-width="2"/>`,
+	rr: k=>`<path d="M9 12 h9 v7 a3.5 3.5 0 0 1 -3.5 3.5 h-2 a3.5 3.5 0 0 1 -3.5 -3.5 z" fill="none" stroke="${k}" stroke-width="2"/><rect x="10.5" y="6" width="6" height="6" rx="1" fill="none" stroke="${k}" stroke-width="2"/><path d="M11 22.5 v6 h6" fill="none" stroke="${k}" stroke-width="2" stroke-linejoin="round"/><rect x="23" y="9" width="4" height="16" rx="2" fill="#8b79bd"/><rect x="23" y="9" width="14" height="4" rx="2" fill="#8b79bd"/><text x="30" y="31" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6" fill="${k}">33-36 IN</text>`,
+	rt: k=>`<circle cx="14" cy="24" r="7" fill="none" stroke="${k}" stroke-width="2"/><circle cx="14" cy="24" r="1.8" fill="${k}"/><circle cx="16" cy="5" r="3" fill="${k}"/><path d="M16 9 v7 h7 M16 16 h-2 M23 16 l3 7" fill="none" stroke="${k}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 8 h10 M33 8 v9 M29 26 h8" stroke="${k}" stroke-width="2" stroke-linecap="round" opacity=".7"/>`,
+	hs: k=>`<rect x="5" y="6" width="10" height="14" rx="2" fill="none" stroke="${k}" stroke-width="2"/><path d="M10 6 v-3" stroke="${k}" stroke-width="2.2"/><path d="M8 23 h4" stroke="${k}" stroke-width="2" stroke-linecap="round"/><rect x="21" y="6" width="12" height="9" rx="1.5" fill="none" stroke="${k}" stroke-width="2"/><path d="M24 15 v6 M27 15 v8 M30 15 v6" stroke="${k}" stroke-width="1.8" stroke-linecap="round"/><path d="M21 28 h12" stroke="${k}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`,
+};
+function artFor(p, ink){
+	if(p.gate) return inspectorSVG(p.row, ink);
+	const f = ART[p.id];
+	return `<svg viewBox="0 0 40 34" width="100%" height="100%" aria-hidden="true">${f ? f(ink) : `<text x="20" y="24" text-anchor="middle" font-family="Iowan Old Style,Palatino,Georgia,serif" font-size="20" fill="${ink}">${p.sym}</text>`}</svg>`;
+}
 function symMarkup(p, ink){
 	if(p.icon==='inspector') return `<span class="pic">${inspectorSVG(p.row, ink)}</span>`;
 	if(p.icon==='permit') return `<span class="pic">${permitSVG(ink)}</span>`;
@@ -544,7 +664,42 @@ function buildRing(){
 	SORTED.forEach(p=>stage.appendChild(tileNode(p,true)));
 	layout();
 }
+function layoutDeck(){
+	const W = stage.clientWidth, H = stage.clientHeight;
+	const phone = W < 760;
+	const cs = getComputedStyle(document.documentElement);
+	const cw = parseFloat(cs.getPropertyValue('--cw')), ch = parseFloat(cs.getPropertyValue('--ch'));
+	const deck = document.getElementById('deck');
+	renderDeck();                                            // fill it first, then measure what it really is
+	deck.style.width = Math.min(W - 16, cw + (phone ? 74 : 24))+'px';
+	deck.style.left = '0px'; deck.style.top = '0px';
+	const dW = Math.max(cw + 24, deck.offsetWidth), dH = Math.max(ch + 60, deck.offsetHeight);
+	let bx, by, bw, bh;
+	if(phone){
+		const foot = 54;                                        // the score row and its buttons own the bottom strip
+		deck.style.left = Math.round((W - dW)/2)+'px';
+		deck.style.top  = Math.round(H - dH - foot)+'px';
+		bx = 8; by = 56; bw = W - 16; bh = Math.max(90, H - dH - foot - 56 - 22);
+	} else {
+		deck.style.left = '16px';
+		deck.style.top  = Math.round(Math.max(70, (H - dH)/2))+'px';
+		bx = dW + 34; by = 74; bw = Math.max(120, W - (dW + 34) - 20); bh = Math.max(120, H - 74 - 96);
+	}
+	const k = 800/560;
+	let w = bw, h = w/k;
+	if(h > bh){ h = bh; w = h*k; }
+	const box = document.getElementById('housebox');
+	const bl = bx + (bw - w)/2, bt = by + (bh - h)/2;
+	box.style.left = Math.round(bl)+'px'; box.style.top = Math.round(bt)+'px';
+	box.style.width = Math.round(w)+'px'; box.style.height = Math.round(h)+'px';
+	geo = {cx:W/2, cy:H/2, rx:1, ry:1, tw:cw, th:ch, stagger:1};
+	const msg = document.getElementById('msg');
+	msg.style.left = Math.round(bl + w/2)+'px';
+	msg.style.top  = Math.round(Math.min(bt + h + 5, (phone ? H - dH - 74 : H - 30)))+'px';
+	document.getElementById('dial').innerHTML = '';
+}
 function layout(){
+	if(state.mode === 'deck'){ layoutDeck(); return; }
 	const W = stage.clientWidth, H = stage.clientHeight;
 	const tw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tw'));
 	const th = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--th'));
@@ -588,7 +743,7 @@ function layout(){
 			t.style.top = (top - th/2 - 8 - (rows-1-r)*(th+6))+'px';
 		});
 	}
-	const msg = document.getElementById('msg'); msg.style.top = (top + 2*b - 6)+'px';
+	const msg = document.getElementById('msg'); msg.style.left = '50%'; msg.style.top = (top + 2*b - 6)+'px';
 	drawDial();
 }
 function drawDial(){
@@ -620,6 +775,7 @@ function refreshTiles(){
 		t.classList.toggle('sel', state.sel===p.id);
 	});
 	const u = document.getElementById('undo'); if(u) u.disabled = past.length === 0;
+	if(state.mode === 'deck'){ renderDeck(); return; }
 	drawDial();
 }
 window.addEventListener('resize', layout);
@@ -643,7 +799,10 @@ function moveDrag(e){
 	if(!drag) return;
 	if(!drag.moved && Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) > 6){
 		drag.moved = true; closePeek();
-		ghost.innerHTML=''; const c = tileNode(byId[drag.id], false); ghost.appendChild(c); ghost.style.display='block';
+		ghost.innerHTML='';
+		if(state.mode === 'deck'){ const c = document.getElementById('bigcard').cloneNode(true); c.removeAttribute('id'); ghost.appendChild(c); }
+		else { ghost.appendChild(tileNode(byId[drag.id], false)); }
+		ghost.style.width = geo.tw+'px'; ghost.style.height = geo.th+'px'; ghost.style.display='block';
 		document.body.style.cursor='grabbing';
 	}
 	if(drag.moved){
@@ -734,7 +893,7 @@ function attempt(id, e){
 	state.sel=null; redraw(); refreshTiles(); score();
 }
 function say(kind, html){ const m = document.getElementById('msg'); m.className = kind; m.innerHTML = html; }
-function shakeTile(id){ const t = stage.querySelector(`.tile[data-id="${id}"]`); if(!t) return; t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
+function shakeTile(id){ const t = state.mode === 'deck' ? document.getElementById('bigcard') : stage.querySelector(`.tile[data-id="${id}"]`); if(!t) return; t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
 function leak(e){
 	const svg = document.getElementById('scene'); const g = document.getElementById('leaks');
 	let x=400,y=300;
@@ -762,9 +921,11 @@ function finish(){
 	document.getElementById('done').classList.add('on');
 }
 function resetAll(){
-	state.placed.clear(); state.passed.clear(); state.burned.clear(); state.failedRows.clear(); state.leaks=0; state.fails=0; state.sel=null; past.length=0;
+	state.placed.clear(); state.passed.clear(); state.burned.clear(); state.failedRows.clear(); state.leaks=0; state.fails=0; state.sel=null; state.cursor=null; past.length=0;
 	document.getElementById('stamps').innerHTML=''; document.getElementById('done').classList.remove('on'); closePeek();
-	say('', 'Drag a part into the space. Hover a tile to read it. <b>Gold ring = ready now.</b> Reverse takes the last step back.');
+	say('', state.mode === 'deck'
+		? 'Drag the top card in, or press <b>Put it in</b>. Gold edge = ready.'
+		: 'Drag a part into the space. Gold ring = ready now &#183; Reverse takes the last step back.');
 	redraw(); refreshTiles(); score();
 }
 document.getElementById('reset').addEventListener('click', resetAll);
@@ -801,7 +962,9 @@ function openPeek(id, o){
 		${can ? `<button class="eat" id="peekgo">${p.gate?'Call the inspection':'Put it in the building'}</button>` : ''}`;
 	const go = document.getElementById('peekgo'); if(go) go.addEventListener('click', ()=>attempt(id));
 	peek.classList.add('on');
-	const t = stage.querySelector(`.tile[data-id="${id}"]`); const tr = t.getBoundingClientRect();
+	const t = (state.mode === 'deck' ? document.getElementById('bigcard') : stage.querySelector(`.tile[data-id="${id}"]`))
+	         || document.getElementById('bigcard');
+	const tr = t.getBoundingClientRect();
 	const pw = peek.offsetWidth, ph = peek.offsetHeight;
 	const tcx = tr.left + tr.width/2, tcy = tr.top + tr.height/2;
 	const W = window.innerWidth, H = window.innerHeight;
@@ -843,6 +1006,73 @@ function buildTable(){
 document.getElementById('showchart').addEventListener('click', ()=>{ buildTable(); refreshTiles(); document.getElementById('chart').classList.add('on'); });
 document.getElementById('chartclose').addEventListener('click', ()=>document.getElementById('chart').classList.remove('on'));
 document.getElementById('chart').addEventListener('click', e=>{ if(e.target.id==='chart') e.currentTarget.classList.remove('on'); });
+
+/* ============================================================
+   THE DECK — every card in one place, dealt in order.
+   The ring is still there; it is the other view of the same set.
+   ============================================================ */
+const LINKMARK = '<span class="cardlink" title="Opens another game"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M3.5 8.5 L8.5 3.5 M4.5 3.5 h4 v4" fill="none" stroke="#161410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+function deckAvail(){ return SORTED.filter(p=>!state.placed.has(p.id) && !state.burned.has(p.id) && !coveredBy(p)); }
+function deckDeal(){
+	const av = deckAvail();
+	if(!av.length){ state.cursor = null; return; }
+	const r = av.find(p=>ready(p));
+	state.cursor = (r || av[0]).id;
+}
+function deckStep(dir){
+	const av = deckAvail(); if(!av.length) return;
+	let i = av.findIndex(p=>p.id===state.cursor);
+	i = i<0 ? 0 : (i + dir + av.length) % av.length;
+	state.cursor = av[i].id; closePeek(); state.sel = null; renderDeck();
+}
+function renderDeck(){
+	const bc = document.getElementById('bigcard'); if(!bc) return;
+	const av = deckAvail();
+	if(!state.cursor || !av.some(p=>p.id===state.cursor)) deckDeal();
+	const play = document.getElementById('dplay');
+	const cnt = document.getElementById('dcount');
+	if(!state.cursor){
+		bc.className = 'card empty'; bc.style.background = ''; delete bc.dataset.id;
+		bc.innerHTML = '<span></span><span class="bart"></span><span class="bnm">The deck is empty.<span class="bfam">every card is in the building</span></span>';
+		cnt.innerHTML = `<b>${PARTS.length}</b> of <b>${PARTS.length}</b> cards<br>all <b>${NG}</b> steps done`;
+		play.disabled = true; play.textContent = 'Put it in'; return;
+	}
+	const p = byId[state.cursor], f = famById[p.fam], r = ROWS[p.row-1];
+	const pos = SORTED.findIndex(x=>x.id===p.id) + 1;
+	bc.className = 'card' + (ready(p) ? ' ready' : '');
+	bc.style.background = fill(f.hue, f.hueTo);
+	bc.dataset.id = p.id;
+	bc.setAttribute('aria-label', `Card ${pos} of ${PARTS.length}. ${p.name}. Step ${p.row} of ${NG}, ${r.label}.`);
+	bc.innerHTML = `<span class="hd"><span class="bz">${p.z}</span><span class="bstep"><i>STEP</i><b>${p.row}</b></span></span>
+		<span class="bart">${artFor(p, '#161410')}</span>
+		<span><span class="bnm">${p.gate ? 'Call the ' + r.label.toLowerCase() + ' inspection' : p.short}${p.link ? LINKMARK : ''}</span>
+		<span class="bfam">${f.label} &middot; ${r.label}</span></span>
+`;
+	cnt.innerHTML = `Card <b>${pos}</b> of <b>${PARTS.length}</b><br>Step <b>${p.row}</b> of <b>${NG}</b> &middot; <b>${av.length}</b> left`;
+	play.disabled = false;
+	play.textContent = p.gate ? 'Call it in' : 'Put it in';
+}
+function setMode(m, quiet){
+	state.mode = m;
+	stage.classList.toggle('deck', m==='deck');
+	const b = document.getElementById('mode');
+	if(b) b.textContent = m==='deck' ? `See all ${PARTS.length}` : 'Back to the deck';
+	closePeek(); layout(); refreshTiles();
+	if(quiet) return;
+	say('', m==='deck'
+		? `<b>The deck.</b> ${PARTS.length} cards, ${NG} steps. The top card is the next one that is ready \u2014 riffle with \u2039 \u203a to play out of order.`
+		: `<b>All ${PARTS.length} cards at once.</b> Every step around the building, in the order it goes in.`);
+}
+document.getElementById('dprev').addEventListener('click', ()=>deckStep(-1));
+document.getElementById('dnext').addEventListener('click', ()=>deckStep(1));
+document.getElementById('dplay').addEventListener('click', ()=>{ if(state.cursor) attempt(state.cursor); });
+document.getElementById('mode').addEventListener('click', ()=>setMode(state.mode==='deck' ? 'ring' : 'deck'));
+document.getElementById('mode').textContent = `See all ${PARTS.length}`;
+window.addEventListener('keydown', e=>{
+	if(state.mode!=='deck' || e.metaKey || e.ctrlKey || e.altKey) return;
+	if(e.key==='ArrowLeft'){ e.preventDefault(); deckStep(-1); }
+	else if(e.key==='ArrowRight'){ e.preventDefault(); deckStep(1); }
+});
 
 /* ============================================================
    THE SCENE — a section (cutaway / inspector) and the room a
@@ -897,6 +1127,18 @@ function permitBoard(parent, layer){
 	g.appendChild(rect(150,152,74,10,'#e6e0d2'));                                        // the plan roll on a table
 	g.appendChild(path('M150,152 l-8,5 l8,5',{fill:'none',stroke:'#c9c3b4','stroke-width':2}));
 	lab(g, 150, 148, 'APPROVED PLANS');
+	g.appendChild(text(694,256,'CBC1253676',{'font-size':4.2,'font-family':MONO,'letter-spacing':.3,fill:'#6b6960'}));
+}
+
+/* ---- the contractor's banner on the parapet: this is a Covenant Builders job ---- */
+function covenantSign(parent, layer){
+	const g = grp(parent, layer);
+	[128,284].forEach(x=>g.appendChild(line(x,96,x,62,'#6d6a63',2.5)));
+	g.appendChild(rect(120,60,172,36,'#12202e',{stroke:'#2f4256','stroke-width':1.5}));
+	g.appendChild(rect(120,60,172,3,'#d4a24c'));
+	g.appendChild(path('M133,88 l7,-9 l7,9 v6 h-14 z',{fill:'none',stroke:'#d4a24c','stroke-width':1.8,'stroke-linejoin':'round'}));
+	g.appendChild(text(154,78,'COVENANT BUILDERS',{'font-size':10.5,'font-family':MONO,'letter-spacing':.6,fill:'#f2e9d2'}));
+	g.appendChild(text(154,88,'BUILDING THE TREASURE COAST \u00b7 CBC1253676',{'font-size':5.2,'font-family':MONO,'letter-spacing':.4,fill:'#8ea3b8'}));
 }
 
 /* ============================== SECTION ============================== */
@@ -904,7 +1146,7 @@ function drawSection(){
 	const S = document.getElementById('SEC'); S.innerHTML='';
 	shellBase(S);
 
-	if(L('permit')) permitBoard(S,'permit');
+	if(L('permit')){ permitBoard(S,'permit'); covenantSign(S,'permit'); }
 
 	/* ---- row 2: the floor comes open ---- */
 	if(L('shell')){
@@ -1264,6 +1506,12 @@ function drawFront(){
 		g.appendChild(text(703,282,'CO',{'font-size':7,'font-family':MONO,fill:'#161410'}));
 		g.appendChild(path('M703,290 h26 M703,296 h26 M703,302 h16',{stroke:'#a09a8c','stroke-width':1.3}));
 	}
+	if(L('finish')){
+		const g = grp(E,'finish');                                                              // the builder's plaque, by the door
+		g.appendChild(rect(452,300,74,26,'#1a232c',{stroke:'#d4a24c','stroke-width':1.2}));
+		g.appendChild(text(489,312,'BUILT BY COVENANT BUILDERS',{'text-anchor':'middle','font-size':5,'font-family':MONO,'letter-spacing':.4,fill:'#d4a24c'}));
+		g.appendChild(text(489,321,'VERO BEACH, FL \u00b7 CBC1253676',{'text-anchor':'middle','font-size':4.4,'font-family':MONO,'letter-spacing':.3,fill:'#7f8c99'}));
+	}
 	if(!L('finish')){
 		const g = mk('g',{}); E.appendChild(g);
 		lab(g, 300, 300, 'NOTHING TO LOOK AT YET', '#4d4a44');
@@ -1297,5 +1545,6 @@ document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click
 		: '<b>Cutaway.</b> The bay cut end to end — under the slab, the walls, the hood, the ceiling, the room — so you can see every layer you placed.');
 }));
 
+stage.classList.add('deck');
 buildRing(); redraw(); score();
 </script>
