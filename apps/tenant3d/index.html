@@ -1,0 +1,1491 @@
+<title>RESTAURANT Build-Out 3D</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+	--bg:#07080c; --panel:#0c0e14; --panel2:#15171f; --line:#252836;
+	--ink:#e8e4dc; --dim:#9a9789; --faint:#6d6b62;
+	--gold:#d4a24c; --sky:#6f92b8; --sage:#7fa07a; --rust:#c46a4a;
+	--paper:#f7f4ed; --paper2:#ece8df; --pink:#161410; --hair:#5c6370;
+	--mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+	--serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+	--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;
+	--tw:60px; --th:52px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+button{font:inherit}
+button:focus-visible,.tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- the stage = the whole screen ---------- */
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,#1a2a3e 0%,#0b1119 46%,#07080c 80%);overflow:hidden;touch-action:none}
+#stage.over #housebox{box-shadow:0 0 0 3px var(--gold),0 0 60px rgba(212,162,76,.25)}
+#dial{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#dial .arc{fill:none;stroke:#2a2f3d;stroke-width:1.5}
+#dial .arc.pass{stroke:var(--sage);stroke-width:2.5}
+#dial .arc.fail{stroke:var(--rust);stroke-width:2.5}
+#dial .arc.open{stroke:var(--gold);stroke-width:2;stroke-dasharray:4 5}
+#dial .rl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;fill:#6d6b62}
+#dial .rl.pass{fill:var(--sage)}#dial .rl.fail{fill:var(--rust)}#dial .rl.open{fill:var(--gold)}
+
+#housebox{position:absolute;border-radius:14px;transition:box-shadow .15s}
+#housebox canvas{width:100%;height:100%;display:block;border-radius:14px}
+#housebox{overflow:hidden;background:#0b1119}
+#stage.over #housebox canvas{cursor:copy}
+#msg{position:absolute;left:50%;transform:translateX(-50%);text-align:center;max-width:46ch;font-size:12px;line-height:1.4;color:var(--dim);pointer-events:none;text-wrap:balance}
+#msg b{color:var(--ink)}
+#msg.leak b{color:var(--sky)}#msg.pass b{color:var(--sage)}#msg.fail b{color:var(--rust)}
+
+/* corners */
+.corner{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px}
+#tl{left:14px;top:12px}
+#tr{right:14px;top:12px;align-items:flex-end}
+#bl{left:14px;bottom:12px}
+#br{right:14px;bottom:12px;align-items:flex-end}
+.brand{font-family:var(--serif);font-size:18px;line-height:1}
+.brand em{color:var(--gold);font-style:italic}
+.brand small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.toggle{display:inline-flex;background:rgba(21,23,31,.9);border:1px solid var(--line);border-radius:999px;padding:2px;width:max-content}
+.toggle button{background:none;border:0;color:var(--dim);font-size:11px;padding:4px 9px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:var(--gold);color:#17140c;font-weight:600}
+button.ghost{background:rgba(21,23,31,.9);border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:999px;cursor:pointer;font-size:11px}
+button.ghost[disabled]{opacity:.32;cursor:not-allowed}
+#undo:not([disabled]){border-color:var(--gold);color:var(--gold)}
+.stamp{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid var(--line);color:var(--faint);background:rgba(12,14,20,.8);width:max-content}
+.stamp.pass{border-color:var(--sage);color:var(--sage)}
+.stamp.fail{border-color:var(--rust);color:var(--rust)}
+#stamps{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;max-width:180px}
+.stamp.pass,.stamp.fail{padding:2px 3px}
+.score{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.score b{color:var(--ink);font-weight:600}
+.foot{font-size:9.5px;color:var(--faint);max-width:30ch;line-height:1.35}
+.foot a{color:var(--gold)}
+
+/* ---------- the ring of tiles ---------- */
+.tile{position:absolute;z-index:4;width:var(--tw);height:var(--th);margin:0;display:flex;flex-direction:column;justify-content:space-between;border-radius:6px;padding:3px 4px;border:1px solid var(--hair);color:var(--pink);text-align:left;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .15s,box-shadow .15s,opacity .2s;transform:translate(-50%,-50%)}
+.tile:hover{transform:translate(-50%,-50%) scale(1.06);box-shadow:0 8px 18px rgba(0,0,0,.5);z-index:6}
+.tile.ready{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(212,162,76,.45)}
+.tile.sel{box-shadow:0 0 0 2px #fff,0 8px 18px rgba(0,0,0,.5)}
+.tile .z{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.7;line-height:1}
+.tile .sym{font-family:var(--serif);font-size:19px;line-height:.9;letter-spacing:-.01em}
+.tile .pic{display:block;height:24px;width:28px;margin:-1px 0 0}
+.grid .tile .pic{height:30px;width:34px}
+@media (max-width:760px){.tile .pic{height:19px;width:22px}}
+#peek .pic{display:block;width:44px;height:38px;margin-bottom:2px}
+.tile .nm{font-size:7.5px;line-height:1.1;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .lk{position:absolute;top:3px;right:4px;font-size:7px;opacity:.75}
+.tile.spent{background:var(--paper2)!important;color:#8a8578;border-color:#c9c3b5;cursor:default}
+.tile.spent::after{content:"✓";position:absolute;right:4px;bottom:3px;font-size:11px;color:#7fa07a}
+.tile.covered{opacity:.4;cursor:not-allowed}
+.tile.burned::after{content:"✗";position:absolute;right:4px;bottom:3px;font-size:11px;color:#c46a4a;font-weight:700}
+.tile.burned{border-color:#c46a4a}
+.tile.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translate(-50%,-50%)}20%{transform:translate(calc(-50% - 5px),-50%)}40%{transform:translate(calc(-50% + 5px),-50%)}60%{transform:translate(calc(-50% - 4px),-50%)}80%{transform:translate(calc(-50% + 4px),-50%)}}
+#ghost{position:fixed;z-index:50;pointer-events:none;width:var(--tw);height:var(--th);display:none;opacity:.95}
+#ghost .tile{position:static;transform:rotate(-4deg);box-shadow:0 18px 40px rgba(0,0,0,.6)}
+
+/* ---------- the peek (the card, anchored to the tile) ---------- */
+#peek{position:fixed;z-index:40;width:19rem;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;display:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#peek.on{display:block}
+#peek .bar{height:3px;width:30px;border-radius:99px;background:var(--gold);margin-bottom:8px}
+#peek .kick{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin:0 0 2px}
+#peek .sym{font-family:var(--serif);font-size:30px;line-height:1;margin:0;color:var(--gold)}
+#peek h2{font-family:var(--serif);font-size:17px;font-weight:400;margin:3px 0 1px;line-height:1.2}
+#peek .meta{font-size:10px;color:var(--faint);margin:0 0 8px}
+#peek .law{font-size:13.5px;line-height:1.4;margin:0 0 9px;color:var(--ink)}
+.blk{border-left:3px solid var(--sage);background:#10151c;padding:7px 9px;margin-bottom:7px}
+.blk h3{margin:0 0 3px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:var(--sage)}
+.blk p{margin:0;font-size:11.5px;color:var(--dim);line-height:1.45}
+.blk a{color:var(--gold)}
+.blk.fail{border-left-color:var(--rust)}.blk.fail h3{color:var(--rust)}
+.blk.spec{border-left-color:var(--sky)}.blk.spec h3{color:var(--sky)}
+.blk.hot{border-left-color:var(--gold);background:#14110c}.blk.hot h3{color:var(--gold)}.blk.hot p{color:var(--ink)}
+.grade{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);margin:1px 0 6px}
+.grade b{font-family:var(--sans);font-size:11px}
+.grade.g1{border-color:var(--sage);color:var(--sage)}.grade.g2{border-color:var(--sky);color:var(--sky)}.grade.g3,.grade.g5{border-color:var(--rust);color:var(--rust)}
+#peek .src{font-size:10px;color:var(--faint);margin:0 0 10px;line-height:1.4}
+.eat{background:var(--gold);border:0;color:#17140c;font-weight:700;padding:7px 13px;border-radius:999px;cursor:pointer;font-size:12px}
+#peek .close{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--faint);font-size:16px;cursor:pointer;padding:2px 6px}
+
+/* ---------- the chart overlay (the table, read-only) ---------- */
+#chart{position:fixed;inset:0;z-index:30;display:none;background:rgba(7,8,12,.8);align-items:center;justify-content:center;padding:20px}
+#chart.on{display:flex}
+.paper{position:relative;background:var(--paper);border-radius:10px;padding:14px 14px 12px;color:var(--pink);max-width:min(66rem,100%);max-height:100%;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+.paper h2{margin:0 0 10px;text-align:center;font-size:10px;font-weight:500;letter-spacing:.28em;text-transform:uppercase;color:#6d6b62}
+.paper .close{position:absolute;right:8px;top:6px;background:none;border:0;color:#6d6b62;font-size:18px;cursor:pointer}
+.grid{display:grid;gap:2px}
+.fam{padding:0 2px 6px;text-align:center}
+.fam b{display:block;font-size:11px;font-weight:600}
+.fam span{display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#6d6b62}
+.rowlab{display:flex;align-items:center;justify-content:flex-end;padding-right:5px}
+.rowlab span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#6d6b62;white-space:nowrap}
+.grid .tile{position:static;transform:none;width:auto;height:auto;min-height:3.4rem;cursor:default}
+.grid .tile:hover{transform:none;box-shadow:none}
+.grid .tile .nm{white-space:normal;font-size:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 4px 0;font-size:9.5px;color:#6d6b62}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px;border:1px solid var(--hair)}
+
+/* ---------- done ---------- */
+#done{display:none;position:fixed;inset:0;z-index:45;background:rgba(7,8,12,.88);align-items:center;justify-content:center;text-align:center;padding:24px}
+#done.on{display:flex}
+#done h2{font-family:var(--serif);font-weight:400;font-size:36px;margin:0 0 6px;color:#fff;text-wrap:balance}
+#done .stars{font-size:26px;color:var(--gold);letter-spacing:.2em;margin-bottom:8px}
+#done p{color:var(--dim);max-width:44ch;margin:0 auto 14px;line-height:1.5}
+#done p b{color:var(--ink)}
+.drip{animation:drip 1.1s ease-in forwards}
+@keyframes drip{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(60px)}}
+.bandlab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;fill:#9a9789}
+@media (max-width:760px){:root{--tw:44px;--th:40px}.tile .z{font-size:10px}#dial .rl{display:none}.tile .sym{font-size:15px}.tile .nm{display:none}.brand small,.foot{display:none}.toggle button{font-size:10px;padding:3px 7px}#stamps{display:none}}
+@media (prefers-reduced-motion:reduce){.tile,.drip,.tile.shake{animation:none;transition:none}}
+</style>
+
+<div id="stage" aria-label="The 3D restaurant, with every part around it">
+	<svg id="dial" aria-hidden="true"></svg>
+	<div id="housebox"></div>
+	<p id="msg">Drag a part into the space. <b>Drag the house to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.</p>
+
+	<div class="corner" id="tl">
+		<div class="brand">RESTAURANT <em>Build-Out 3D</em><small>Treasure Coast tenant space &middot; crew edition</small></div>
+		<div class="toggle" role="tablist" aria-label="View">
+			<button data-view="cutaway" class="on">Cutaway</button>
+			<button data-view="street">Dining room</button>
+			<button data-view="inspector">Inspector</button>
+		</div>
+	</div>
+	<div class="corner" id="tr"><div id="stamps"></div></div>
+	<div class="corner" id="bl">
+		<span class="score" id="score">Gates 0/10 · Leaks 0 · Failed gates 0</span>
+		<div style="display:flex;gap:6px"><button class="ghost" id="undo" disabled title="Take the last step back (Ctrl+Z)">&#8630; Reverse</button><button class="ghost" id="reset">Start over</button><button class="ghost" id="showchart">The table</button></div>
+	</div>
+	<div class="corner" id="br"><span class="foot">Gates follow the code chain a Florida restaurant actually walks: <a href="https://www2.myfloridalicense.com/hotels-restaurants/licensing/plan-review/" target="_blank" rel="noopener">DBPR plan review</a>, FBC 8th Ed., NFPA 96 and the fire marshal. Drag to spin, scroll to zoom. A training model, not a permit.</span></div>
+</div>
+
+<div id="peek" role="dialog" aria-label="Part card"><button class="close" id="peekclose" aria-label="Close">×</button><div id="peekbody"></div></div>
+<div id="chart" role="dialog" aria-label="Periodic Table of Restaurant Parts"><div class="paper"><button class="close" id="chartclose" aria-label="Close">×</button><h2>Periodic Table of Restaurant Parts — the data behind the ring</h2><div class="grid" id="table"></div><div class="legend" id="legend"></div></div></div>
+<div id="done"><div><div class="stars" id="d-stars"></div><h2 id="d-title"></h2><p id="d-body"></p><button class="eat" id="again">Open another one</button></div></div>
+<div id="ghost"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+/* ============================================================
+   DATA — the table. Hue lives on the family. Order lives on
+   `needs`. If you write  if(part.id==='block')  the engine is dead.
+   ============================================================ */
+const FAMS = [
+	{id:'pp', sym:'Pp', label:'Paper', q:'Is it legal, and who signed?', hue:'#efe6cf', hueTo:'#d7c79b', block:1},
+	{id:'sh', sym:'Sh', label:'Shell', q:'What did you take over?', hue:'#cdb497', hueTo:'#8f6f4b', block:2},
+	{id:'wa', sym:'Wa', label:'Waste', q:'Where does the dirty water go?', hue:'#d9dee4', hueTo:'#94a0ad', block:3},
+	{id:'gs', sym:'Gs', label:'Gas', q:'What feeds the flame?', hue:'#f0b884', hueTo:'#c9762a', block:3},
+	{id:'pw', sym:'Pw', label:'Power', q:'Where does the power go?', hue:'#f0d98a', hueTo:'#c9a83a', block:3},
+	{id:'hd', sym:'Hd', label:'Hood', q:'Where do the smoke and the grease go?', hue:'#bcc9d6', hueTo:'#6f8296', block:4},
+	{id:'fi', sym:'Fi', label:'Fire', q:'What puts it out, and how do they get out?', hue:'#f2a8a8', hueTo:'#c2413a', block:4},
+	{id:'cd', sym:'Cd', label:'Cold', q:'What keeps it cold?', hue:'#b9dcd2', hueTo:'#6fb8a6', block:5},
+	{id:'ac', sym:'Ac', label:'Access', q:'Can everybody get in and use it?', hue:'#c9bee6', hueTo:'#8b79bd', block:5},
+	{id:'fn', sym:'Fn', label:'Finish', q:'Can it be cleaned?', hue:'#e2c9b8', hueTo:'#bd9273', block:5},
+];
+const ROWS = [
+	{n:1,  code:'PR',  label:'Plan review', sees:'Three desks said yes before one wall moved: zoning, the state, and the building department.'},
+	{n:2,  code:'UG',  label:'Underground', sees:'Two waste systems under one slab — grease on one, sanitary on the other — open, sloped and holding a test.'},
+	{n:3,  code:'IN',  label:'Interceptor', sees:'A grease interceptor outside, sized, with a lid a pump truck can reach — and a backflow preventer on the water.'},
+	{n:4,  code:'RI',  label:'Rough-in', sees:'Open walls: pipe, wire, gas, and wood behind every place a heavy thing will hang.'},
+	{n:5,  code:'HD',  label:'Hood & duct', sees:'A Type I hood and a grease duct welded liquid-tight, before anything covers it.'},
+	{n:6,  code:'FS',  label:'Fire suppression', sees:'A UL 300 system that drops the gas, the power and the fans when it fires — proven on a test.'},
+	{n:7,  code:'AC',  label:'Above ceiling', sees:'Make-up air, sprinkler heads and alarm devices — the last look before the grid goes in.'},
+	{n:8,  code:'FE',  label:'Finish & equipment', sees:'Surfaces that can be cleaned, a restroom anyone can use, and every food drain broken by air.'},
+	{n:9,  code:'FM',  label:'Fire marshal final', sees:'Doors that open under a push, lights that stay on, and a Class K on the wall.'},
+	{n:10, code:'OP',  label:'Opening inspection', sees:'The state walks it once more, the licence prints, and the building department signs the CO.'},
+];
+const GRADES = {
+	'1':['✓','Robust','In the code, the rule, or the state form.'],
+	'2':['~','Range','Real, but the number is on your plans or your utility’s ordinance. Confirm.'],
+	'3':['⚠','Contested','Jurisdictions differ. Both shown.'],
+	'4':['◈','Model','Simplified for the sim.'],
+	'5':['✗','Cartoon','The common lie. It looked right until the gate.'],
+};
+const SRC_D = 'Florida DBPR, Division of Hotels and Restaurants — Plan Review (61C-1.002, 61C-4.010)';
+const SRC_M = 'Florida Building Code, Mechanical, 8th Ed., Ch. 5 (Type I hoods and grease ducts) / NFPA 96';
+const SRC_F = 'Florida Fire Prevention Code / IFC 904.13, NFPA 96, NFPA 17A, UL 300';
+const SRC_H = 'Florida DOH food establishment plan review guide (construction standards)';
+const SRC_P = 'Florida Building Code, Plumbing, 8th Ed., Ch. 10 (traps, interceptors, separators)';
+const SRC_A = '2010 ADA Standards as adopted in FBC Accessibility, 8th Ed.';
+const HOUSE_URL = '../../../HOUSE/apps/cbs/index.html';
+const ROOF_URL = '../../../ROOF/apps/shingle/index.html';
+const PARTS = [
+
+	/* ================= ROW 1 — before anybody swings a hammer ================= */
+	{id:'zo', z:1, sym:'Zo', icon:'permit', name:'Change of use, parking and capacity fees', short:'Change of use', fam:'pp', row:1, needs:[],
+		law:'A shop that sells shoes and a shop that sells dinner are two different buildings on paper.',
+		spec:'Retail is Group M. A restaurant with 50 or more people is Group A-2 — assembly. Changing the group is a change of occupancy: parking count recalculated, occupant load recalculated, and the water and sewer capacity charge recalculated, because a restaurant uses several times the water a store did. Ask zoning and ask the utility, in writing, before you sign the lease.',
+		fail:'The lease is signed, the bay is gutted, and the utility sends a five-figure capacity bill nobody budgeted. That money does not come out of the build — it comes out of you.',
+		grade:'2', src:'FBC Existing Building change-of-occupancy provisions; the dollar figure is your county utility’s current impact/ERC schedule — get it in writing.', layer:'permit'},
+	{id:'dp', z:2, sym:'Dp', icon:'permit', name:'DBPR plan review package', short:'DBPR plan review', fam:'pp', row:1, needs:['zo'],
+		law:'Florida licenses the restaurant, not just the building. The state reads your floor plan before the county does.',
+		spec:'Plan review is required when a food service establishment is newly built, converted from another use, remodeled, or reopened after 18 months closed. Submit the application, a scale floor plan with every piece of equipment labelled, and a sample menu. Allow about 30 days.',
+		fail:'Build first and the state can make you move a sink you already tiled around. Everything after that is demolition you pay for twice.',
+		grade:'1', src:SRC_D+' — “Newly built · Converted from another use · Remodeled · Re-opened after being closed at least 18 months.”', layer:'permit'},
+	{id:'bp', z:3, sym:'Bp', icon:'permit', name:'Building permit and the sub-permits', short:'Permit + subs', fam:'pp', row:1, needs:['dp'],
+		law:'One restaurant, six permits. Miss one and the whole job stops on its inspection.',
+		spec:'Master building permit with sealed plans, plus separate permits pulled by the licensed subs: plumbing, electrical, mechanical, gas, fire suppression (the hood system), and fire alarm or sprinkler if the building has them. Fire prevention reviews the plans alongside the building department.',
+		fail:'The hood shows up on a truck with no fire-suppression permit. The fire marshal will not inspect a system that was never permitted, and the hood cannot be covered until he does.',
+		grade:'1', src:'Local building division commercial permitting; fire suppression is a separately permitted system under the Florida Fire Prevention Code.', layer:'permit'},
+	{id:'g1', icon:'inspector', z:4, sym:'G1', name:'Plan review approved', short:'Plan review', fam:'pp', row:1, gate:1, needs:['bp'],
+		law:'Three desks say yes before one wall moves.',
+		spec:'Zoning cleared the use and the parking. DBPR approved the food plan. The building department and fire prevention approved the construction plans and issued the permits.',
+		fail:'Starting without them is a stop-work order and a double permit fee — on a lease that is already running rent.',
+		grade:'1', src:SRC_D+'; local building division plan review.', layer:'gate1', lit:['permit']},
+
+	/* ================= ROW 2 — everything under the slab ================= */
+	{id:'dm', z:5, sym:'Dm', link:true, name:'Demo and saw-cut the slab', short:'Demo & saw-cut', fam:'sh', row:2, needs:['g1'],
+		law:'You are not building a restaurant. You are opening a floor and putting one inside somebody else’s building.',
+		spec:'Strip the old tenant out. Confirm what is structural before you cut — in a strip centre the demising walls and any interior columns are holding the roof up. Saw-cut and trench the slab on the lines the plumbing plan shows. Protect the neighbours: they are still open for business on the other side of that wall. (The shell itself gets built in <a href="'+HOUSE_URL+'" target="_blank" rel="noopener">HOUSE Block</a>.)',
+		fail:'Cut a post-tension cable or a structural slab beam and the job stops for an engineer’s repair letter. In a tilt-wall or PT slab, X-ray or GPR the cut lines first.',
+		grade:'2', src:'Structural condition is on the existing building’s drawings and an engineer’s letter — not in any code book.', layer:'shell'},
+	{id:'gw', z:6, sym:'Gw', name:'Under-slab waste — grease side and sanitary side', short:'Under-slab waste', fam:'wa', row:2, needs:['dm'],
+		law:'A restaurant has two sewers under one floor. Mix them and you contaminate the clean one forever.',
+		spec:'Everything that touches food or grease — three-compartment sink, prep sink, mop sink, wok and kettle drains, floor sinks under the cook line, dishmachine — runs on the grease line to the interceptor. Toilets, lavatories and hand sinks run on the sanitary line straight to the main. Both bedded, sloped a quarter inch per foot, cleanouts where the plan shows them, capped for the test.',
+		fail:'Tie the toilets into the grease line and you have made a grease interceptor full of sewage that a pump truck now has to handle. Tie the sinks into the sanitary line and the utility catches it at the FOG inspection.',
+		grade:'1', src:SRC_P+'; test per FBC Plumbing 312.', layer:'uwaste'},
+	{id:'fd', z:7, sym:'Fd', name:'Floor sinks and floor drains', short:'Floor sinks', fam:'wa', row:2, needs:['gw'],
+		law:'A floor sink is not a drain. It is the open cup that catches the air gap.',
+		spec:'Floor sinks set flush and level under the equipment that has to drain indirectly — dishmachine, ice machine, walk-in coolers, steam equipment, prep sinks. Floor drains in the dish area and the mop area, floor sloped to them. Set the rims flush now: they are cast into the pour and nobody moves them later.',
+		fail:'One floor sink an inch high or six inches off the equipment and every indirect drain above it becomes a hose running across the floor — a DBPR violation on opening day.',
+		grade:'1', src:SRC_H+' — indirect waste must terminate over a receptor with an air gap.', layer:'floorsink'},
+	{id:'g2', icon:'inspector', z:8, sym:'G2', name:'Underground plumbing inspection', short:'Underground insp.', fam:'pp', row:2, gate:2, needs:['fd'],
+		law:'Everything under that floor is buried forever. He sees it once.',
+		spec:'Trenches open, both systems visible and separate, water or air test holding, cleanouts accessible, floor sink rims set to finished floor.',
+		fail:'Poured over before he came? Rent a saw and start again — and this time the neighbours hear it for two days.',
+		grade:'1', src:'Local plumbing underground rough inspection; FBC Plumbing 312.', layer:'gate2', lit:['uwaste','floorsink']},
+
+	/* ================= ROW 3 — the interceptor and the water service ================= */
+	{id:'gi', z:9, sym:'Gi', name:'Grease interceptor, outside and sized', short:'Grease interceptor', fam:'wa', row:3, needs:['g2'],
+		law:'Grease is the only thing in this building the city will actually shut you down over.',
+		spec:'An in-ground interceptor outside, on the grease line, sized from the fixtures and the seats — commonly 1,000 to 1,500 gallons for a full-service kitchen, but the size comes from your utility’s ordinance, not from a rule of thumb. Two chambers, a sample point downstream, traffic-rated lids where a truck can drive, and clear space for the pump hose. Under-sink units only where the utility allows them.',
+		fail:'Undersize it and you are pumping weekly. Put it where a truck cannot reach it and you are pumping by hand. Skip it and the utility can refuse to turn the meter on.',
+		grade:'2', src:SRC_P+' §1003; the actual size and the pumping schedule come from the county utility’s FOG ordinance — call them.', layer:'grease'},
+	{id:'bf', z:10, sym:'Bf', name:'Water service, meter and backflow preventer', short:'Meter & backflow', fam:'wa', row:3, needs:['g2'],
+		law:'A restaurant can push dirty water backwards into the street main. The utility will not allow that.',
+		spec:'Water service and meter sized for the fixture count — the store you took over probably had a small one. A reduced-pressure-zone backflow preventer at the service, tested and certified by a licensed tester, with the certificate filed. Separate protection on the mop sink hose bibb, the carbonator, and any chemical dispenser.',
+		fail:'No backflow certificate on file and the utility will not release the meter. No meter, no water. No water, no inspection, no opening.',
+		grade:'1', src:'FBC Plumbing backflow provisions; certification requirements are your utility’s cross-connection control program.', layer:'water'},
+	{id:'g3', icon:'inspector', z:11, sym:'G3', name:'Interceptor and backflow inspection', short:'Interceptor insp.', fam:'pp', row:3, gate:3, needs:['gi','bf'],
+		law:'The utility owns the pipe at the property line. They inspect their side of it.',
+		spec:'Interceptor set on bedding, plumbed, watertight, lids at grade, sample point accessible. Backflow device installed right side up and tested. Some jurisdictions roll this into the site plumbing inspection — Indian River County Utilities still has to accept it before the meter runs.',
+		fail:'A device installed backwards passes nothing. A lid two inches under the asphalt gets found by a pump truck driver at 6 a.m.',
+		grade:'4', src:'Modelled as its own gate. Confirm the sequence with your utility and the plumbing inspector on the first job.', layer:'gate3', lit:['grease','water']},
+
+	/* ================= ROW 4 — open walls ================= */
+	{id:'wl', z:12, sym:'Wl', name:'Walls, soffits and the walk-in enclosure', short:'Frame the walls', fam:'sh', row:4, needs:['g3'],
+		law:'The rooms are drawn on the plan the state approved. Move one and you re-open plan review.',
+		spec:'Metal stud partitions on the approved layout, moisture-resistant board where it gets wet, soffits framed for the hood and the ductwork, a curb and a level pad for the walk-in. Door openings framed at the sizes the accessibility plan calls for, not the sizes the studs happened to land on.',
+		fail:'Slide the restroom wall four inches to make the dining room work and you have just deleted the wheelchair turning space. That wall comes back out.',
+		grade:'1', src:'Approved architectural plans; FBC Accessibility for clear widths.', layer:'walls'},
+	{id:'bl', z:13, sym:'Bl', name:'Blocking — hood hangers, shelves, grab bars', short:'Blocking', fam:'sh', row:4, needs:['wl'],
+		law:'Anything heavy that hangs on a wall needs wood in the wall before the wall closes.',
+		spec:'Steel or plywood backing for: hood hangers (the hood is hung from structure above, but the wall panels and shelves are not), wall-mounted hand sinks, stainless shelving, the mop sink and its hose rack, TV and menu-board brackets — and both grab bars in every accessible restroom stall, at the height the bars will actually sit.',
+		fail:'No blocking behind the grab bar means a toggle bolt in half-inch drywall. It passes the eye and fails the person leaning on it. The fix is cutting open a finished, tiled wall.',
+		grade:'1', src:SRC_A+' §609 grab bars must resist 250 lb; blocking is how you get there.', layer:'blocking'},
+	{id:'el', z:14, sym:'El', name:'Panel, feeders and branch circuits', short:'Power', fam:'pw', row:4, needs:['wl'],
+		law:'The store you took over had four circuits and a cash register. You are about to plug in a kitchen.',
+		spec:'Service and panel sized for the equipment schedule — hood fans, make-up air, walk-in compressors, dishmachine booster heater, fryers, water heater. Dedicated circuits where the equipment cut sheets call for them. GFCI where required. Conduit and boxes roughed to the equipment plan, whips left where each machine lands. Emergency lighting and exit sign circuits roughed now.',
+		fail:'Discover at equipment set that the existing service will not carry the load and you are back to the utility for a new transformer — a lead time measured in months, on a lease that charges rent every one of them.',
+		grade:'2', src:'NFPA 70 / FBC Electrical; the load is on your equipment schedule, not in a book.', layer:'power'},
+	{id:'rp', z:15, sym:'Rp', name:'Rough plumbing — every sink and the water heater', short:'Rough plumbing', fam:'wa', row:4, needs:['wl'],
+		law:'A restaurant is a building with an argument about sinks. Count them on the approved plan, not from memory.',
+		spec:'Hot and cold to: the three-compartment sink with a drainboard on each end, the prep sink, the mop or service sink, and a hand-wash sink in every food prep, warewashing and service area plus the restrooms. Hot water to every hand sink under pressure. Water heater sized for the dishmachine and the fixtures; if the dishmachine needs 180°F, that is a booster.',
+		fail:'A hand sink the cook cannot reach without walking away from the line is a violation on every routine inspection you will ever get. And a three-compartment sink is never the hand sink.',
+		grade:'1', src:SRC_H+' — hot and cold running water under pressure to all handwash sinks; three-compartment sink with drainboards each end.', layer:'roughp'},
+	{id:'gl', z:16, sym:'Gl', name:'Gas line and pressure test', short:'Gas & test', fam:'gs', row:4, needs:['wl'],
+		law:'The gas line is the one system in the building that fails loudly.',
+		spec:'Line sized for the total appliance input, run and supported per code, a shutoff at each appliance, a quick-disconnect and a restraining cable on anything on casters. The whole system pressure-tested and held for the inspector. The electric gas valve for the fire-suppression interlock gets installed on this line — order it now, it is a long-lead part.',
+		fail:'Undersize the line and every burner on the line drops when the fryers recover. Forget the electric valve and the fire-suppression gate fails on a part you cannot buy locally.',
+		grade:'1', src:'FBC Fuel Gas; NFPA 54 sizing tables. Appliance inputs are on the cut sheets.', layer:'gas'},
+	{id:'g4', icon:'inspector', z:17, sym:'G4', name:'Rough-in inspection', short:'Rough-in insp.', fam:'pp', row:4, gate:4, needs:['bl','el','rp','gl'],
+		law:'Four trades, one open wall. He sees all of it once.',
+		spec:'Framing, blocking, plumbing rough, electrical rough, gas under test — all visible, nothing covered.',
+		fail:'Board it before he comes and you own a wall full of drywall screws you now have to pull.',
+		grade:'1', src:'Local building division combination rough inspection.', layer:'gate4', lit:['walls','blocking','power','roughp','gas']},
+
+	/* ================= ROW 5 — the hood and the grease duct ================= */
+	{id:'hb', z:18, sym:'Hb', name:'Type I hood set', short:'Type I hood', fam:'hd', row:5, needs:['g4'],
+		law:'Grease-producing equipment gets a Type I hood. A Type II hood over a fryer is a decoration.',
+		spec:'Type I hood over the fryers, griddle, range, charbroiler and any appliance that produces grease-laden vapour. Hung from structure, level, overhanging the cooking surface on every open side per the listing, with listed grease filters set at the angle they are listed for and a grease cup under them. Clearance to combustible construction per the hood’s listing.',
+		fail:'A hood that does not overhang the fryer captures the smoke you can see and misses the grease you cannot. It also fails on the tape measure.',
+		grade:'1', src:SRC_M+' — Type I hoods required over appliances producing grease-laden vapors.', layer:'hood'},
+	{id:'gd', z:19, sym:'Gd', name:'Grease duct, continuous liquid-tight weld', short:'Welded duct', fam:'hd', row:5, needs:['hb'], altOf:'sc',
+		law:'The duct is a pipe full of burning grease. There are no seams in it. None.',
+		spec:'16-gauge steel or 18-gauge stainless. Every joint and every seam a continuous liquid-tight weld or braze on the external surface. No screws, rivets or fasteners penetrating the duct. Sloped at least a quarter inch per foot back to the hood on runs up to 75 feet. Cleanouts at every change of direction and at the intervals the code sets, accessible after the ceiling closes.',
+		fail:'None — this is the way it is done. It costs more, it takes a welder, and it is the difference between a grease fire in a duct and a grease fire in a building.',
+		grade:'1', src:SRC_M+': “All joints and seams shall be made with continuous liquid-tight weld or braze made of the external surface.”', layer:'duct'},
+	{id:'sc', z:19, sym:'Gd', name:'Screw and mastic the duct seams', short:'Screwed duct', fam:'hd', row:5, needs:['hb'], trap:true, altOf:'gd',
+		law:'It is sheet metal. Sheet metal gets screwed and sealed. That is how every other duct in the building is built.',
+		spec:'S-and-drive joints, sheet-metal screws, high-temp mastic over the seams, wrapped so nobody sees it. It holds air. It passes a smoke test. From the dining room, from the kitchen, and from under the ceiling grid it looks exactly like the welded one.',
+		fail:'The hood inspection finds a screw head inside the duct and a seam that is not welded. The entire duct comes out — after the ceiling grid, the sprinkler drops and the make-up air are already in the way of the crane.',
+		grade:'5', src:'Not a grease duct. That is the point. ' + SRC_M, layer:'ducttape'},
+	{id:'dw', z:20, sym:'Dw', name:'Duct enclosure and clearance to combustibles', short:'Duct wrap', fam:'hd', row:5, needs:['gd|sc'],
+		law:'The duct gets hot enough to light what it touches. So either move it away, or wrap it.',
+		spec:'Clearance to combustible construction per code, or a listed grease-duct wrap installed exactly to its listing — right number of layers, right overlap, right pinning, no compression — or a rated shaft where the duct passes through a floor or a rated assembly. Photograph the wrap before it is covered; the inspector who comes later cannot see it.',
+		fail:'A wrap installed at the wrong overlap is a wrap that failed its own listing. Nobody can tell once the ceiling is in, which is exactly why the inspector wants it now.',
+		grade:'1', src:SRC_M+'; wrap systems per their UL listing and the manufacturer’s installation instructions.', layer:'wrap'},
+	{id:'ef', z:21, sym:'Ef', link:true, name:'Exhaust fan, curb, and where it blows', short:'Exhaust fan', fam:'hd', row:5, needs:['dw'],
+		law:'Everything the kitchen makes comes out of one hole in the roof. Somebody lives downwind of it.',
+		spec:'Listed upblast fan on a curb, hinged so it can be swung for cleaning, with a grease box. Discharge above the roof and away from air intakes, operable openings and property lines by the code distances. Roof penetration flashed and warrantable — this is somebody else’s roof and somebody else’s warranty (<a href="'+ROOF_URL+'" target="_blank" rel="noopener">ROOF Shingle</a> is that penetration’s five gates). Not inside a duct, not under the hood.',
+		fail:'Terminate it next to the neighbour tenant’s fresh-air intake and you will meet them, the landlord, and code enforcement in the same week.',
+		grade:'1', src:SRC_M+' exhaust outlet termination clearances; NFPA 96.', layer:'fan'},
+	{id:'g5', icon:'inspector', z:22, sym:'G5', name:'Hood and duct inspection', short:'Hood insp.', fam:'pp', row:5, gate:5, needs:['ef'], failsIf:['sc'],
+		law:'The one inspection where a flashlight and a mirror decide whether your ceiling stays up.',
+		spec:'Hood set and hung, duct welds visible, slope checked, cleanouts accessible, wrap or clearance verified, fan and termination checked — before any ceiling, soffit or shaft closes it in.',
+		fail:'Close the ceiling first and you open the ceiling again. Every time.',
+		grade:'1', src:SRC_M+'; local mechanical and fire inspection.', layer:'gate5', lit:['hood','duct','ducttape','wrap','fan']},
+
+	/* ================= ROW 6 — the system that saves the building ================= */
+	{id:'an', z:23, sym:'An', name:'Wet-chemical system, UL 300, a nozzle per appliance', short:'Suppression', fam:'fi', row:6, needs:['g5'],
+		law:'Modern frying oil burns hotter than the old systems were built for. UL 300 is the standard written after those systems lost.',
+		spec:'A pre-engineered wet-chemical system listed to UL 300, designed to NFPA 17A and NFPA 96. Nozzles selected and aimed for each specific appliance, plus the hood plenum, the filters and the duct. The design is by appliance model — change a fryer for a wider one later and the system has to be redesigned.',
+		fail:'A dry-chemical system from the 1990s is not UL 300. Insurers and fire marshals both know the difference, and one of them will not renew you.',
+		grade:'1', src:SRC_F+' — IFC 904.13: systems tested to UL 300, listed and labeled for the application.', layer:'ansul'},
+	{id:'fl', z:24, sym:'Fl', name:'Fusible links and the manual pull', short:'Links & pull', fam:'fi', row:6, needs:['an'],
+		law:'Two ways to fire it: the heat does it, or a human does it on the way out the door.',
+		spec:'Detection links over each appliance and in the duct collar, at the temperature ratings the design calls for. A manual pull station on the path of egress from the kitchen — not less than 10 feet and not more than 20 feet from the hood, mounted 42 to 48 inches above the floor. Links get changed on a schedule for the life of the restaurant; NFPA 96 says semiannually.',
+		fail:'A pull station behind the fryer is a pull station nobody can reach in a fire. It is also a failed inspection today.',
+		grade:'1', src:SRC_F+' — IFC 904.13.1 manual actuation 10–20 ft from the system, 42–48 in. above the floor.', layer:'links'},
+	{id:'il', z:25, sym:'Il', name:'The interlock — gas, power and fans', short:'Interlock', fam:'fi', row:6, needs:['fl'],
+		law:'A fire suppression system that leaves the gas on is a fire suppression system that loses.',
+		spec:'On activation: the electric gas valve closes, electric power to the appliances under the hood drops, and the make-up air unit shuts down so it stops feeding the fire. The exhaust fan keeps running per the design. Reset is manual, by hand, at the panel — never automatic. Separately, the make-up air is interlocked to run whenever the exhaust runs.',
+		fail:'Wire the make-up air to keep running and you have installed a fan that blows air onto a fire while the chemical tries to smother it.',
+		grade:'1', src:SRC_F+' — IFC 904.13.2 automatic fuel and electrical shutoff, manual reset; makeup air electrically interlocked with the exhaust.', layer:'interlock'},
+	{id:'g6', icon:'inspector', z:26, sym:'G6', name:'Fire suppression discharge test', short:'Suppression test', fam:'pp', row:6, gate:6, needs:['il'],
+		law:'Nobody takes the installer’s word for it. They make it fire.',
+		spec:'Fire marshal witnesses a functional test: pull the station, watch the gas valve slam, watch the appliance power drop, watch the make-up air stop, confirm the exhaust behaviour. Nozzle count and aim verified against the listing. Certificate goes in the file.',
+		fail:'One wire landed on the wrong contact and the whole crew comes back on another day the fire marshal has open — which may not be this week.',
+		grade:'1', src:SRC_F+'; NFPA 17A acceptance testing.', layer:'gate6', lit:['ansul','links','interlock']},
+
+	/* ================= ROW 7 — the last look above the ceiling ================= */
+	{id:'ma', z:27, sym:'Ma', name:'Make-up air unit, interlocked', short:'Make-up air', fam:'hd', row:7, needs:['g6'], altOf:'nm',
+		law:'Every cubic foot the hood throws out has to come back in through something. Your choice is a unit, or the front door.',
+		spec:'A mechanical make-up air unit delivering approximately the exhaust volume, tempered, ducted to the kitchen, electrically interlocked so it runs whenever the exhaust runs and stops when the suppression fires. Doors and windows do not count as make-up air.',
+		fail:'None — this is the way it is done, and it is the difference between a kitchen and a wind tunnel.',
+		grade:'1', src:SRC_M+' — makeup air approximately equal to exhaust; “shall be electronically interlocked with the exhaust system.”', layer:'mua'},
+	{id:'nm', z:27, sym:'Ma', name:'Skip the make-up air — the fan is enough', short:'No make-up air', fam:'hd', row:7, needs:['g6'], trap:true, altOf:'ma',
+		law:'It is a fan. Fans pull air. The building has air in it. Save the eleven thousand dollars.',
+		spec:'The exhaust fan alone, no unit, no duct, no interlock. The ceiling looks finished. The kitchen looks finished. On a walkthrough with the owner, in an empty building with the fan off, nothing is wrong at all.',
+		fail:'The above-ceiling inspection fails on the mechanical plan: the approved drawings show a make-up air unit and the ceiling does not have one. And when it does run: the front door needs two hands to open, the pilot lights blow out, the hood stops capturing, and the dining room smells like the fryer.',
+		grade:'5', src:'Not make-up air. That is the point. ' + SRC_M, layer:'nomua'},
+	{id:'sp', z:28, sym:'Sp', name:'Sprinkler heads and fire alarm devices', short:'Sprinklers & alarm', fam:'fi', row:7, needs:['ma|nm'],
+		law:'A restaurant packs more people into the same box than the store did. The building may now need protection it did not need before.',
+		spec:'If the building is sprinklered, heads relocated to the new ceiling and the new walls, and the kitchen system tied to the alarm. Assembly occupancies cross sprinkler thresholds on fire area, occupant load, and being above or below the level of exit discharge — the plan reviewer tells you which one you hit. Alarm devices, horns and strobes placed and roughed.',
+		fail:'Find out at the fire marshal final that a 120-seat A-2 needed a sprinkler system and you have a project that stopped being a build-out.',
+		grade:'2', src:'FBC Fire / Florida Fire Prevention Code sprinkler thresholds for Group A-2 — confirm the trigger with the plan reviewer for your specific fire area and occupant load.', layer:'sprink'},
+	{id:'g7', icon:'inspector', z:29, sym:'G7', name:'Above-ceiling inspection', short:'Above-ceiling insp.', fam:'pp', row:7, gate:7, needs:['sp'], failsIf:['nm'],
+		law:'The last day anybody can see the top half of your building.',
+		spec:'Mechanical, electrical, sprinkler and alarm above the ceiling line checked against the approved plans — including the make-up air unit and its interlock — before the grid and tile go in.',
+		fail:'Grid it first and the ceiling comes back out in the middle of a finished kitchen.',
+		grade:'1', src:'Local combination above-ceiling inspection.', layer:'gate7', lit:['mua','nomua','sprink','duct','wrap']},
+
+	/* ================= ROW 8 — surfaces, equipment, and people ================= */
+	{id:'qt', z:30, sym:'Qt', name:'Quarry tile floor with a coved base', short:'Floor & cove', fam:'fn', row:8, needs:['g7'],
+		law:'A ninety-degree corner between a floor and a wall is a place a mop cannot go.',
+		spec:'Quarry tile or sealed commercial floor in the kitchen, dish and storage areas, sloped to the drains. Every junction between wall and floor coved and sealed — a curved base tile or a coved resilient base, not a caulk line. Same rule in restrooms and dry storage.',
+		fail:'Straight base at the floor line is the single most common re-do on a build-out. It fails on the state’s walk-through and you are cutting tile in a finished kitchen.',
+		grade:'1', src:SRC_H+': “All junctures between walls and floors shall be coved and sealed.”', layer:'floor'},
+	{id:'fr', z:31, sym:'Fr', name:'Washable walls, ceiling and shielded lights', short:'Walls & ceiling', fam:'fn', row:8, needs:['qt'],
+		law:'Smooth, durable, non-absorbent, cleanable. Four words that decide every finish in the back of the house.',
+		spec:'FRP or equivalent behind every wet and cooking wall, washable ceiling tile in a cleanable grid, semi-gloss where it has to be wiped. Light fixtures over exposed food, prep and storage get shields or shatter-resistant coatings. No exposed wood, no raw block, no acoustic tile above the cook line.',
+		fail:'A beautiful reclaimed-wood accent wall in a prep area is an absorbent surface. It photographs well and it does not pass.',
+		grade:'1', src:SRC_H+' — finishes smooth, easily cleanable and nonabsorbent; protective covers on lights over exposed food.', layer:'finish'},
+	{id:'wk', z:32, sym:'Wk', name:'Walk-in cooler and freezer', short:'Walk-in', fam:'cd', row:8, needs:['fr'],
+		law:'The walk-in is a building inside your building, and it drains like one.',
+		spec:'Box set on the prepared pad, panels sealed, floor coved into the box. Refrigeration lines run and insulated the whole way to the condenser — the entire suction line, not the part you can see. Condensate from the evaporator and the freezer drain line, heat-traced on the freezer, terminating over a floor sink with an air gap. Interior light shielded, door hardware openable from inside.',
+		fail:'A bare suction line sweats onto a finished ceiling until it stains through. A condensate line hard-piped to the sewer fails the state on opening day.',
+		grade:'1', src:SRC_H+' indirect waste and air gap; refrigeration piping per the manufacturer and FBC Mechanical.', layer:'walkin'},
+	{id:'eq', z:33, sym:'Eq', name:'Set the line and connect it', short:'Set equipment', fam:'pw', row:8, needs:['fr'],
+		law:'The equipment plan the state approved is the equipment that goes in. Not the equipment that came up on the auction site.',
+		spec:'Cook line set under the hood at the spacing the suppression design was drawn to, casters and restraining cables on the movable pieces, quick-disconnects on the gas, whips landed, dishmachine and booster set, ice machine on its floor sink, shelving up on the blocking. Six inches of clearance under anything not sealed to the floor, or seal it down.',
+		fail:'Swap the 3-bank fryer for a 4-bank one and the fire suppression nozzles no longer match the appliances they were listed for. That system gets redesigned, repermitted and retested.',
+		grade:'1', src:'Approved equipment schedule; ' + SRC_F + ' nozzle placement is appliance-specific.', layer:'line'},
+	{id:'ag', z:34, sym:'Ag', name:'Air gap every food drain', short:'Air gaps', fam:'wa', row:8, needs:['eq'], altOf:'hp',
+		law:'The sewer must never be able to reach the food. The only guaranteed barrier is open air.',
+		spec:'Every drain from equipment that holds food, ice, portable equipment or utensils is indirectly wasted through an air gap over a floor sink — three-compartment sink, prep sink, dishmachine, ice machine, walk-in evaporators, steam kettles. The gap between the waste pipe and the flood-level rim is at least twice the effective opening of the pipe. Mop sinks and toilets connect direct; food fixtures never do.',
+		fail:'None — this is the way it is done, and it is the reason a backed-up main does not become an ice machine full of sewage.',
+		grade:'1', src:SRC_H+': “All drains from any equipment in which food (including ice)… are placed must be indirectly wasted by means of an air gap… a minimum of twice the effective opening of the indirect waste pipe.”', layer:'airgap'},
+	{id:'hp', z:34, sym:'Ag', name:'Hard-pipe the sink drains', short:'Hard-piped', fam:'wa', row:8, needs:['eq'], trap:true, altOf:'ag',
+		law:'A pipe into a pipe. It drains faster, it never overflows onto the floor, and it is one afternoon instead of three.',
+		spec:'Tailpiece straight into the waste line under the three-compartment sink and the ice machine. Behind a stainless sink, under a shadow, in a room nobody walks into. The building inspector is not looking for it. The fire marshal is not looking for it. It will pass every gate on this dial except the one that matters.',
+		fail:'The state opening inspection fails on indirect waste. You are now re-plumbing under installed, sealed, connected equipment in a finished kitchen — with a staff hired, a menu printed, and an opening date announced.',
+		grade:'5', src:'A direct connection, not an air gap. That is the point. ' + SRC_H, layer:'hardpipe'},
+	{id:'rr', z:35, sym:'Rr', name:'The accessible restroom', short:'Restroom', fam:'ac', row:8, needs:['fr'],
+		law:'The restroom is where a build-out gets sued. Everything in it is a measurement.',
+		spec:'Clear floor space to turn — a 60-inch circle or a T-turn. Water closet centreline 16 to 18 inches from the side wall. Grab bars 33 to 36 inches above the floor, on the blocking you put in at rough. Lavatory rim no higher than 34 inches with knee clearance under it, and the drain and hot supply insulated or configured so nobody can touch them. Door manoeuvring clearance on the pull side, hardware that works without grasping or twisting. Mirror, dispensers and hooks within reach range.',
+		fail:'Every one of these is a tape-measure item at final. A lavatory an inch too high comes off the wall, and the tile behind it comes off with it.',
+		grade:'1', src:SRC_A+' §§304, 604, 606, 609 (turning space, water closet, lavatory, grab bars).', layer:'restroom'},
+	{id:'rt', z:36, sym:'Rt', name:'The route, the tables and the counter', short:'Access route', fam:'ac', row:8, needs:['qt'],
+		law:'Somebody in a wheelchair has to get from the parking space to a table and order without being carried.',
+		spec:'An accessible route from the accessible parking to the entrance and through the dining room, with no step and no lip. At least five percent of the dining surfaces accessible — 28 to 34 inches high with knee and toe clearance — and dispersed, not all pushed into one corner by the restroom. A portion of the service or order counter no higher than 36 inches. Aisle widths kept when the furniture arrives, not just on the plan.',
+		fail:'Every accessible table crammed against the kitchen door is technically compliant seating and practically an insult. It is also the first thing a plaintiff’s photograph shows.',
+		grade:'1', src:SRC_A+' §§206, 226, 902, 904 (routes, dining surfaces, counters).', layer:'dining'},
+	{id:'g8', icon:'inspector', z:37, sym:'G8', name:'Finish and equipment inspection', short:'Finish insp.', fam:'pp', row:8, gate:8, needs:['wk','ag|hp','rr','rt'],
+		law:'The building department’s last look before the people with clipboards arrive.',
+		spec:'Finishes, coving, restroom dimensions, accessible route, equipment set and connected, gas and electrical finals on the line.',
+		fail:'A tape measure in an accessible restroom is not an opinion.',
+		grade:'1', src:'Local building, plumbing, electrical and mechanical final inspections.', layer:'gate8', lit:['floor','finish','walkin','line','airgap','restroom','dining']},
+
+	/* ================= ROW 9 — the fire marshal ================= */
+	{id:'ex', z:38, sym:'Ex', name:'Exits, panic hardware, signs and lights', short:'Exits', fam:'fi', row:9, needs:['g8'],
+		law:'A restaurant is a room full of strangers in the dark who do not know where the back door is.',
+		spec:'Occupant load calculated and posted — dining at roughly 15 square feet per person for tables and chairs, kitchen far less dense. Fifty or more people means assembly: two exits, doors swinging out, panic hardware on the exit doors, illuminated exit signs on the path, and emergency lighting on battery or generator that stays on when the power drops. Exit path clear of the furniture the owner wants to add.',
+		fail:'Panic hardware ordered after the doors are hung is a six-week lead time standing between you and a certificate of occupancy.',
+		grade:'2', src:'FBC 8th Ed. means of egress: occupant load table, two exits above 49 occupants, panic hardware for Group A at 50 or more. Confirm your load with the plan reviewer.', layer:'exit'},
+	{id:'ke', z:39, sym:'Ke', name:'Class K and the rest of the extinguishers', short:'Extinguishers', fam:'fi', row:9, needs:['ex'],
+		law:'Water on a fryer fire makes a fireball. There is a specific extinguisher for that, and it is not the red one.',
+		spec:'A portable extinguisher within 30 feet of travel distance from the cooking equipment, Class K where the cooking uses vegetable or animal oils and fats. Standard ABC units on the general path per the fire code spacing. Tags current, mounted at the right height, with the placard by the Class K unit telling staff to fire the hood system first.',
+		fail:'A Class K unit sitting in the box in the office is not mounted. The fire marshal does not grade on intent.',
+		grade:'1', src:SRC_F+' — IFC 904.13.5: portable extinguisher within 30 ft travel distance; Class K for vegetable or animal oils and fats.', layer:'extg'},
+	{id:'g9', icon:'inspector', z:40, sym:'G9', name:'Fire marshal final', short:'Fire final', fam:'pp', row:9, gate:9, needs:['ke'],
+		law:'He is not inspecting your restaurant. He is inspecting how a hundred strangers get out of it.',
+		spec:'Egress width and path, door swing and hardware, exit signs and emergency lights tested under load, occupant load posted, extinguishers mounted and tagged, hood system tagged, alarm and sprinkler accepted.',
+		fail:'Anything he writes up here sits between you and the CO, and none of it is a same-day fix.',
+		grade:'1', src:'Florida Fire Prevention Code final inspection.', layer:'gate9', lit:['exit','extg','ansul','sprink']},
+
+	/* ================= ROW 10 — the state, then the keys ================= */
+	{id:'hs', z:41, sym:'Hs', name:'Stock it — hot water, soap, towels, thermometers', short:'Stock it', fam:'fn', row:10, needs:['g9'],
+		law:'The state does not inspect a building. It inspects a restaurant, and a restaurant has soap in it.',
+		spec:'Hot water proven at every hand sink. Soap and single-use towels at each one. Thermometers in every cooler and freezer, test strips at the three-compartment sink, a probe thermometer on the line. Chemicals stored below and away from food. A certified food manager on staff and the employee training in place. Licence application and fee submitted so the licence can print the day you pass.',
+		fail:'Everything built right, and the inspection fails because there is no paper towel dispenser over a hand sink. It happens constantly.',
+		grade:'1', src:SRC_D+'; ' + SRC_H + '.', layer:'stock'},
+	{id:'g10', icon:'inspector', z:42, sym:'G10', name:'Opening inspection, licence, and the CO', short:'Opening & CO', fam:'pp', row:10, gate:10, needs:['hs'], failsIf:['hp'],
+		law:'Two signatures on one day: the state lets you cook, and the county lets you open the door.',
+		spec:'DBPR opening inspection against the approved plan — sinks where they were drawn, indirect waste on every food fixture, finishes cleanable, hot water, coving, lighting. Then the licence. Then the building department issues the certificate of occupancy.',
+		fail:'A CO without a licence is an empty room. A licence without a CO is a crime. You need both, and the last item found is always the plumbing under a sink.',
+		grade:'1', src:SRC_D+'; local certificate of occupancy.', layer:'gate10', lit:['stock','airgap','hardpipe','floor','finish','restroom']},
+];
+const byId = Object.fromEntries(PARTS.map(p=>[p.id,p]));
+const famById = Object.fromEntries(FAMS.map(f=>[f.id,f]));
+const fill = (h,h2)=>`linear-gradient(155deg, color-mix(in srgb, ${h} 58%, #ffffff) 0%, ${h} 46%, ${h2} 100%)`;
+const NG = ROWS.length;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {placed:new Set(), leaks:0, fails:0, passed:new Set(), burned:new Set(), failedRows:new Set(), view:'cutaway', sel:null};
+const stage = document.getElementById('stage');
+const SORTED = PARTS.slice().sort((a,b)=>a.z-b.z || (a.trap?1:0)-(b.trap?1:0));
+const ORDER = SORTED.filter(p=>p.fam!=='pp');        // the ring: what goes on the house
+const PAPER = SORTED.filter(p=>p.fam==='pp');        // the shelf: permit + the ten inspections
+const N = ORDER.length;
+// clockwise from 12 o'clock, spaced by arc length so the flat top of a tall screen is not crowded
+let ANGS = [];
+const ANG = i => ANGS[i];
+function spaceRing(rx, ry){
+	const M = 720, len = [0]; let prev = [rx*Math.cos(-Math.PI/2), ry*Math.sin(-Math.PI/2)];
+	for(let k=1;k<=M;k++){ const a = -Math.PI/2 + 2*Math.PI*k/M; const p = [rx*Math.cos(a), ry*Math.sin(a)]; len.push(len[k-1] + Math.hypot(p[0]-prev[0], p[1]-prev[1])); prev = p; }
+	const total = len[M];
+	ANGS = ORDER.map((_,i)=>{ const s = total*(i+0.5)/N; let k=0; while(k<M && len[k+1]<s) k++; const f=(s-len[k])/(len[k+1]-len[k]); return -Math.PI/2 + 2*Math.PI*(k+f)/M; });
+}
+const MID = (i,j) => { let a = ANGS[i], b = ANGS[j]; if(b < a) b += 2*Math.PI; return (a+b)/2; };
+let geo = {cx:0,cy:0,rx:0,ry:0};
+
+function el(tag, cls){ const n=document.createElement(tag); if(cls) n.className=cls; return n; }
+const svgNS='http://www.w3.org/2000/svg';
+function mk(tag, attrs){ const n=document.createElementNS(svgNS,tag); for(const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+
+/* ============================================================
+   THE RING — the table's rows become arcs, its tiles a dial
+   ============================================================ */
+function inspectorSVG(n, ink){
+	return `<svg viewBox="0 0 34 32" width="100%" height="100%" aria-hidden="true">
+		<circle cx="11" cy="7.5" r="4.2" fill="${ink}"/>
+		<path d="M3.5 29 v-9 a7.5 7.5 0 0 1 15 0 v9 z" fill="${ink}"/>
+		<path d="M16 21 L21 17" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
+		<circle cx="24.5" cy="14.5" r="7" fill="rgba(255,255,255,.55)" stroke="${ink}" stroke-width="2.2"/>
+		<path d="M29.5 19.5 L33 23" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>
+		<text x="24.5" y="17.8" text-anchor="middle" font-family="Iowan Old Style,Palatino Linotype,Palatino,Georgia,serif" font-size="${n>9?8.5:10}" font-weight="700" fill="${ink}">${n}</text>
+	</svg>`;
+}
+function permitSVG(ink){
+	return `<svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden="true">
+		<path d="M7 3 h13 l6 6 v20 h-19 z" fill="rgba(255,255,255,.75)" stroke="${ink}" stroke-width="1.8" stroke-linejoin="round"/>
+		<path d="M20 3 v6 h6" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linejoin="round"/>
+		<path d="M10.5 13 h11 M10.5 17 h11 M10.5 21 h7" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/>
+		<circle cx="21" cy="24" r="3.2" fill="none" stroke="#b3382a" stroke-width="1.6"/>
+	</svg>`;
+}
+function symMarkup(p, ink){
+	if(p.icon==='inspector') return `<span class="pic">${inspectorSVG(p.row, ink)}</span>`;
+	if(p.icon==='permit') return `<span class="pic">${permitSVG(ink)}</span>`;
+	return `<span class="sym">${p.sym}</span>`;
+}
+function tileNode(p, ring){
+	const f = famById[p.fam];
+	const b = el('button','tile'); b.type='button'; b.dataset.id = p.id;
+	b.style.background = fill(f.hue,f.hueTo);
+	b.setAttribute('aria-label', `${p.name}. ${f.label}, ${ROWS[p.row-1].label}.`);
+	b.innerHTML = `<span class="z">${p.z}</span>${symMarkup(p,'#161410')}<span class="nm">${p.short}</span>${p.link?'<span class="lk" title="Opens ROOF Shingle">↗</span>':''}`;
+	if(ring){
+		b.addEventListener('pointerdown', startDrag);
+		b.addEventListener('pointerenter', e=>{ if(!drag && window.matchMedia('(hover:hover)').matches) openPeek(p.id, {}); });
+		b.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); attempt(p.id); } });
+	}
+	return b;
+}
+function buildRing(){
+	stage.querySelectorAll('.tile').forEach(t=>t.remove());
+	SORTED.forEach(p=>stage.appendChild(tileNode(p,true)));
+	layout();
+}
+function layout(){
+	const W = stage.clientWidth, H = stage.clientHeight;
+	const tw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tw'));
+	const th = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--th'));
+	const cx = W/2, cy = H/2;
+	const rx = W/2 - tw/2 - 12, ry = H/2 - th/2 - 12;
+	const stagger = 1;
+	geo = {cx,cy,rx,ry,tw,th,stagger};
+	spaceRing(rx, ry);
+	ORDER.forEach((p,i)=>{
+		const t = stage.querySelector(`.tile[data-id="${p.id}"]`); if(!t) return;
+		const a = ANG(i);
+		t.style.left = (cx + rx*Math.cos(a))+'px'; t.style.top = (cy + ry*Math.sin(a))+'px';
+	});
+	// house box: largest 800:560 rectangle inside the inner ellipse, minus the paper shelf above it
+	const irx = rx - tw/2 - 18, iry0 = ry - th/2 - 18 - 14;
+	const k = 800/560;
+	const fit = (iry)=>{ const b = 1/Math.sqrt((k/irx)**2 + (1/iry)**2); return [k*b, b]; };
+	// pass 1: one shelf row; measure the width the ring leaves free at shelf height; pass 2: real row count
+	let rows = 1, a, b;
+	for(let pass=0; pass<2; pass++){
+		[a,b] = fit(iry0 - rows*(th+10)/2);
+		const top = cy - b + rows*(th+10)/2 - 10;
+		const shelfY = top - th/2 - 8 - (rows-1)*(th+6);
+		const v = Math.min(0.98, Math.abs(shelfY - cy)/(ry*stagger));
+		const avail = 2*(rx*stagger*Math.sqrt(1-v*v) - tw/2 - 10);
+		const perRow = Math.max(3, Math.floor(avail/(tw+4)));
+		rows = Math.ceil(PAPER.length/perRow);
+	}
+	const box = document.getElementById('housebox');
+	box.style.width = (2*a)+'px'; box.style.height = (2*b)+'px';
+	const top = cy - b + rows*(th+10)/2 - 10;
+	box.style.left = (cx-a)+'px'; box.style.top = top+'px';
+	// the paper shelf: permit and inspections in rows just above the house, in inspection order
+	const perRow = Math.ceil(PAPER.length/rows);
+	for(let r=0; r<rows; r++){
+		const items = PAPER.slice(r*perRow, (r+1)*perRow);
+		const gap = Math.min(12, Math.max(4, (2*a - items.length*tw)/(items.length+1)));
+		items.forEach((p,i)=>{
+			const t = stage.querySelector(`.tile[data-id="${p.id}"]`); if(!t) return;
+			t.style.left = (cx + (i-(items.length-1)/2)*(tw+gap))+'px';
+			t.style.top = (top - th/2 - 8 - (rows-1-r)*(th+6))+'px';
+		});
+	}
+	const msg = document.getElementById('msg'); msg.style.top = (top + 2*b - 6)+'px';
+	drawDial();
+}
+function drawDial(){
+	const d = document.getElementById('dial'); d.innerHTML='';
+	const {cx,cy,rx,ry} = geo;
+	const pt = a => [cx+rx*Math.cos(a), cy+ry*Math.sin(a)];
+	ROWS.forEach(r=>{
+		const idx = ORDER.map((p,i)=>p.row===r.n?i:-1).filter(i=>i>=0);
+		if(!idx.length) return;
+		const i0 = idx[0], i1 = idx[idx.length-1];
+		const a0 = (i0===0 ? -Math.PI/2 : MID(i0-1, i0)) + 0.02, a1 = (i1===N-1 ? 3*Math.PI/2 : MID(i1, i1+1)) - 0.02;
+		const [x0,y0]=pt(a0), [x1,y1]=pt(a1);
+		const large = (a1-a0) > Math.PI ? 1 : 0;
+		const status = state.passed.has(r.n) ? 'pass' : state.failedRows.has(r.n) ? 'fail' : (openRow()===r.n ? 'open' : '');
+		d.appendChild(mk('path',{d:`M${x0},${y0} A${rx},${ry} 0 ${large} 1 ${x1},${y1}`, class:'arc '+status}));
+		const am = (a0+a1)/2; const lx = cx + (rx*geo.stagger-geo.tw/2-12)*Math.cos(am), ly = cy + (ry*geo.stagger-geo.th/2-12)*Math.sin(am);
+		const t = mk('text',{x:lx, y:ly, class:'rl '+status, 'text-anchor': Math.cos(am)>0.3?'end':Math.cos(am)<-0.3?'start':'middle', 'dominant-baseline':'middle'});
+		t.textContent = `${r.n} · ${r.label}`; d.appendChild(t);
+	});
+}
+function openRow(){ const g = PARTS.find(p=>p.gate && !state.placed.has(p.id)); return g ? g.row : 0; }
+function refreshTiles(){
+	document.querySelectorAll('.tile').forEach(t=>{
+		const p = byId[t.dataset.id];
+		t.classList.toggle('spent', state.placed.has(p.id));
+		t.classList.toggle('burned', state.burned.has(p.id));
+		t.classList.toggle('covered', !state.placed.has(p.id) && !!coveredBy(p));
+		t.classList.toggle('ready', ready(p));
+		t.classList.toggle('sel', state.sel===p.id);
+	});
+	const u = document.getElementById('undo'); if(u) u.disabled = past.length === 0;
+	drawDial();
+}
+window.addEventListener('resize', layout);
+
+/* ============================================================
+   DRAG — to the house in the middle
+   ============================================================ */
+const ghost = document.getElementById('ghost');
+const housebox = document.getElementById('housebox');
+let drag = null;
+function startDrag(e){
+	if(e.button!==undefined && e.button!==0) return;
+	const t = e.currentTarget; const id = t.dataset.id;
+	drag = {id, x0:e.clientX, y0:e.clientY, moved:false, t};
+	t.setPointerCapture(e.pointerId);
+	t.addEventListener('pointermove', moveDrag);
+	t.addEventListener('pointerup', endDrag);
+	t.addEventListener('pointercancel', endDrag);
+}
+function moveDrag(e){
+	if(!drag) return;
+	if(!drag.moved && Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) > 6){
+		drag.moved = true; closePeek();
+		ghost.innerHTML=''; const c = tileNode(byId[drag.id], false); ghost.appendChild(c); ghost.style.display='block';
+		document.body.style.cursor='grabbing';
+	}
+	if(drag.moved){
+		ghost.style.left = (e.clientX - geo.tw/2)+'px'; ghost.style.top = (e.clientY - geo.th/2)+'px';
+		stage.classList.toggle('over', overHouse(e));
+	}
+}
+function overHouse(e){ const r = housebox.getBoundingClientRect(); const pad = 40; return e.clientX>=r.left-pad && e.clientX<=r.right+pad && e.clientY>=r.top-pad && e.clientY<=r.bottom+pad; }
+function endDrag(e){
+	if(!drag) return;
+	const d = drag; drag = null;
+	d.t.removeEventListener('pointermove', moveDrag); d.t.removeEventListener('pointerup', endDrag); d.t.removeEventListener('pointercancel', endDrag);
+	ghost.style.display='none'; stage.classList.remove('over'); document.body.style.cursor='';
+	if(!d.moved){ openPeek(d.id, {}); return; }           // a tap is "look", not "go"
+	if(overHouse(e)) attempt(d.id, e); else { state.sel=null; refreshTiles(); }
+}
+
+/* ============================================================
+   ENGINE — a partial order, ten gates, two traps
+   ============================================================ */
+function met(need){ return need.split('|').some(id=>state.placed.has(id)); }
+function coveredBy(p){ if(p.altOf && state.placed.has(p.altOf)) return byId[p.altOf]; return PARTS.find(q=>q.altOf===p.id && state.placed.has(q.id)) || null; }
+function ready(p){ return !state.placed.has(p.id) && !state.burned.has(p.id) && !coveredBy(p) && p.needs.every(met); }
+function missing(p){ return p.needs.filter(n=>!met(n)).map(n=>n.split('|').map(id=>byId[id].short).join(' or ')); }
+
+/* ---- REVERSE: one snapshot per step that changes the building ---- */
+const past = [];
+function snap(){ return {placed:new Set(state.placed), passed:new Set(state.passed), burned:new Set(state.burned),
+	failedRows:new Set(state.failedRows), leaks:state.leaks, fails:state.fails}; }
+function restore(s){ state.placed=new Set(s.placed); state.passed=new Set(s.passed); state.burned=new Set(s.burned);
+	state.failedRows=new Set(s.failedRows); state.leaks=s.leaks; state.fails=s.fails; }
+function rebuildStamps(){
+	const s = document.getElementById('stamps'); s.innerHTML='';
+	PARTS.filter(p=>p.gate).sort((a,b)=>a.row-b.row).forEach(p=>{
+		if(state.passed.has(p.row)) stampGate(p,'pass');
+		else if(state.failedRows.has(p.row)) stampGate(p,'fail');
+	});
+}
+function reverse(){
+	const e = past.pop(); if(!e) return;
+	const p = byId[e.id];
+	const failed = p.gate && state.failedRows.has(p.row);
+	restore(e.s);
+	document.getElementById('done').classList.remove('on');
+	closePeek(); state.sel = null;
+	rebuildStamps(); redraw(); refreshTiles(); score();
+	if(p.gate) say('', failed
+		? `<b>Reversed.</b> The <b>${ROWS[p.row-1].label}</b> inspection is un-called and the tile is back. On a real job you do not get this button.`
+		: `<b>Reversed.</b> The <b>${ROWS[p.row-1].label}</b> inspection is un-called. In the field a stamp is a stamp — and the state keeps its own file.`);
+	else say('', `<b>Reversed.</b> <b>${p.short}</b> is back on the table. On a real job that step is a demo crew, a change order, and a week of the lease.`);
+}
+document.getElementById('undo').addEventListener('click', reverse);
+window.addEventListener('keydown', ev=>{ if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z'){ ev.preventDefault(); reverse(); } });
+
+function attempt(id, e){
+	const p = byId[id];
+	if(state.placed.has(id)){ openPeek(id,{note:'Already in the building.'}); return; }
+	if(state.burned.has(id)){ openPeek(id,{}); return; }
+	const cov = coveredBy(p);
+	if(cov){ openPeek(id, {note:`Already covered by “${cov.name}”. Two ways to do one job — you only do one.`}); return; }
+	if(!p.needs.every(met)){
+		state.leaks++; leak(e); shakeTile(id);
+		const why = `Not yet. The job needs: ${missing(p).join(', ')}. ${p.gate? 'You are calling an inspection on something that is not there.' : 'You cannot cover what the inspector has not seen.'}`;
+		say('leak', `<b>Leak.</b> ${why}`); openPeek(id, {leak:why});
+		score(); return;
+	}
+	past.push({s:snap(), id});                 // from here on the house changes — remember how it looked
+	if(p.gate){
+		const burn = (p.failsIf||[]).filter(t=>state.placed.has(t));
+		if(burn.length){
+			state.fails++; state.failedRows.add(p.row);
+			burn.forEach(t=>{ state.placed.delete(t); state.burned.add(t); });
+			redraw(); stampGate(p, 'fail');
+			const t = byId[burn[0]];
+			const why = `${ROWS[p.row-1].label} inspection: FAIL. “${t.name}” comes out. ${t.fail}`;
+			say('fail', `<b>${ROWS[p.row-1].label}: FAIL.</b> “${t.short}” comes out. ${t.fail}`);
+			openPeek(t.id, {failGate:why}); refreshTiles(); score(); return;
+		}
+		state.placed.add(id); state.passed.add(p.row); state.failedRows.delete(p.row); stampGate(p,'pass');
+		say('pass', `<b>${ROWS[p.row-1].label}: PASS.</b> ${ROWS[p.row-1].sees}`);
+		closePeek();
+		if(p.row===NG) finish();
+	} else {
+		state.placed.add(id);
+		say('', `<b>${p.short}</b> is in. ${p.law}`);
+		closePeek();
+	}
+	state.sel=null; redraw(); refreshTiles(); score();
+}
+function say(kind, html){ const m = document.getElementById('msg'); m.className = kind; m.innerHTML = html; }
+function shakeTile(id){ const t = stage.querySelector(`.tile[data-id="${id}"]`); if(!t) return; t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
+function stampGate(p, kind){
+	const s = document.getElementById('stamps');
+	let d = s.querySelector(`[data-row="${p.row}"]`);
+	if(!d){ d = el('div','stamp'); d.dataset.row = p.row; s.appendChild(d); }
+	d.className = 'stamp '+kind; d.title = `${ROWS[p.row-1].label} · ${kind==='pass'?'PASS':'FAIL'}`; d.setAttribute('aria-label', d.title);
+	d.innerHTML = `<span class="pic" style="display:block;width:22px;height:18px">${inspectorSVG(p.row, kind==='pass'?'#7fa07a':'#c46a4a')}</span>`;
+	[...s.children].sort((a,b)=>a.dataset.row-b.dataset.row).forEach(c=>s.appendChild(c));
+}
+function score(){ document.getElementById('score').innerHTML = `Gates <b>${state.passed.size}/${NG}</b> · Leaks <b>${state.leaks}</b> · Failed gates <b>${state.fails}</b>`; }
+function finish(){
+	const bad = state.leaks + state.fails;
+	const stars = bad===0?3: bad<=3?2:1;
+	document.getElementById('d-stars').textContent = '★'.repeat(stars)+'☆'.repeat(3-stars);
+	document.getElementById('d-title').textContent = ['Open. It cost you a lot to get here.','Open. A few things came back out.','Open. Zero leaks. Do you want a job?'][stars-1];
+	document.getElementById('d-body').innerHTML = `Once around the dial: ten gates, <b>${state.leaks}</b> leak${state.leaks===1?'':'s'}, <b>${state.fails}</b> failed inspection${state.fails===1?'':'s'}. Spin it and look from a table: a screwed duct, a missing make-up air unit and a hard-piped sink drain all look exactly like a finished restaurant from there. The inspections are the only reason it is one.`;
+	document.getElementById('done').classList.add('on');
+}
+function resetAll(){
+	state.placed.clear(); state.passed.clear(); state.burned.clear(); state.failedRows.clear(); state.leaks=0; state.fails=0; state.sel=null; past.length=0;
+	document.getElementById('stamps').innerHTML=''; document.getElementById('done').classList.remove('on'); closePeek();
+	say('', 'Drag a part into the space. <b>Drag the house to spin it, scroll to zoom.</b> Gold ring = ready now &#183; Reverse takes the last step back.');
+	redraw(); refreshTiles(); score();
+}
+document.getElementById('reset').addEventListener('click', resetAll);
+document.getElementById('again').addEventListener('click', resetAll);
+
+/* ============================================================
+   THE PEEK — the card, anchored to the tile, opening inward
+   ============================================================ */
+const peek = document.getElementById('peek');
+let peekLeaveTimer;
+function openPeek(id, o){
+	const p = byId[id]; const f = famById[p.fam]; const r = ROWS[p.row-1];
+	state.sel = id; refreshTiles();
+	const burned = state.burned.has(id);
+	const hideTrap = p.trap && !burned;
+	const g = hideTrap ? GRADES['1'] : GRADES[p.grade]; const gk = hideTrap ? '1' : p.grade;
+	const blocks = [];
+	if(o.leak) blocks.push(`<div class="blk fail"><h3>Leak</h3><p>${o.leak}</p></div>`);
+	if(o.failGate) blocks.push(`<div class="blk fail"><h3>Failed</h3><p>${o.failGate}</p></div>`);
+	if(o.note) blocks.push(`<div class="blk"><h3>Note</h3><p>${o.note}</p></div>`);
+	blocks.push(`<div class="blk spec"><h3>${p.gate?'What he checks':'Spec'}</h3><p>${p.spec}</p></div>`);
+	blocks.push(`<div class="blk fail"><h3>Fails when</h3><p>${p.fail}</p></div>`);
+	const can = !state.placed.has(id) && !burned;
+	document.getElementById('peekbody').innerHTML = `
+		<div class="bar" style="background:${f.hueTo}"></div>
+		<p class="kick">${p.gate?'Gate':(burned?'Cartoon':'Part')} · ${f.label} · ${r.n} ${r.label}${p.gate?' · '+r.code:''}</p>
+		${p.icon ? `<span class="pic">${p.icon==='inspector'?inspectorSVG(p.row,f.hueTo):permitSVG(f.hueTo)}</span>` : `<p class="sym" style="color:${f.hueTo}">${p.sym}</p>`}
+		<h2>${p.name}</h2>
+		<p class="meta">z ${p.z}${p.altOf?` · pairs with ${byId[p.altOf].short}`:''}${state.placed.has(id)?' · in the building':''}</p>
+		<p class="law">${p.law}</p>
+		${blocks.join('')}
+		<span class="grade g${gk}"><b>${g[0]}</b>${g[1]}</span>
+		<p class="src">${hideTrap ? 'Looks like every other tile in its family. That is the point.' : g[2]+' Source: '+p.src}</p>
+		${can ? `<button class="eat" id="peekgo">${p.gate?'Call the inspection':'Put it in the building'}</button>` : ''}`;
+	const go = document.getElementById('peekgo'); if(go) go.addEventListener('click', ()=>attempt(id));
+	peek.classList.add('on');
+	const t = stage.querySelector(`.tile[data-id="${id}"]`); const tr = t.getBoundingClientRect();
+	const pw = peek.offsetWidth, ph = peek.offsetHeight;
+	const tcx = tr.left + tr.width/2, tcy = tr.top + tr.height/2;
+	const W = window.innerWidth, H = window.innerHeight;
+	let left, top;
+	if(Math.abs(tcx - W/2) > W*0.18){ left = tcx < W/2 ? tr.right + 10 : tr.left - 10 - pw; top = tcy - ph/2; }
+	else { top = tcy < H/2 ? tr.bottom + 10 : tr.top - 10 - ph; left = tcx - pw/2; }
+	left = Math.max(8, Math.min(W - pw - 8, left)); top = Math.max(8, Math.min(H - ph - 8, top));
+	if(left < 260 && top < 84) top = 84;   // keep the view toggle uncovered
+	peek.style.left = left+'px'; peek.style.top = top+'px';
+}
+function closePeek(){ peek.classList.remove('on'); }
+document.getElementById('peekclose').addEventListener('click', closePeek);
+peek.addEventListener('pointerenter', ()=>clearTimeout(peekLeaveTimer));
+stage.addEventListener('pointerover', e=>{
+	if(!window.matchMedia('(hover:hover)').matches) return;
+	if(e.target.closest('.tile') || e.target.closest('#peek')) { clearTimeout(peekLeaveTimer); return; }
+	clearTimeout(peekLeaveTimer); peekLeaveTimer = setTimeout(()=>{ if(!peek.matches(':hover')) closePeek(); }, 500);
+});
+window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePeek(); document.getElementById('chart').classList.remove('on'); } });
+
+/* ============================================================
+   THE CHART — the table itself, read-only, one click away
+   ============================================================ */
+function buildTable(){
+	const grid = document.getElementById('table'); grid.innerHTML = '';
+	const cols = ['2.1rem']; const slots = [];
+	FAMS.forEach((f,i)=>{ if(i>0 && FAMS[i-1].block!==f.block){ slots.push({gutter:true}); cols.push('0.55rem'); } slots.push({fam:f}); cols.push('minmax(3.6rem,1fr)'); });
+	grid.style.gridTemplateColumns = cols.join(' ');
+	grid.appendChild(el('div'));
+	slots.forEach(s=>{ if(s.gutter){ grid.appendChild(el('div')); return; } const h = el('div','fam'); h.title = s.fam.q; h.innerHTML = `<b style="color:${s.fam.hueTo}">${s.fam.sym}</b><span>${s.fam.label}</span>`; grid.appendChild(h); });
+	ROWS.forEach(r=>{
+		const seats = {}; FAMS.forEach(f=>{ seats[f.id] = PARTS.filter(p=>p.fam===f.id && p.row===r.n).sort((a,b)=>a.z-b.z || (a.trap?1:-1)); });
+		const height = Math.max(1, ...Object.values(seats).map(a=>a.length));
+		const lab = el('div','rowlab'); lab.style.gridRow = `span ${height}`; lab.title = r.sees; lab.innerHTML = `<span>${r.n} · ${r.label}</span>`; grid.appendChild(lab);
+		for(let seat=0; seat<height; seat++) slots.forEach(s=>{ if(s.gutter){ grid.appendChild(el('div')); return; } const p = seats[s.fam.id][seat]; grid.appendChild(p ? tileNode(p,false) : el('div')); });
+	});
+	document.getElementById('legend').innerHTML = FAMS.map(f=>`<span><i style="background:${fill(f.hue,f.hueTo)}"></i>${f.label} — ${f.q}</span>`).join('');
+}
+document.getElementById('showchart').addEventListener('click', ()=>{ buildTable(); refreshTiles(); document.getElementById('chart').classList.add('on'); });
+document.getElementById('chartclose').addEventListener('click', ()=>document.getElementById('chart').classList.remove('on'));
+document.getElementById('chart').addEventListener('click', e=>{ if(e.target.id==='chart') e.currentTarget.classList.remove('on'); });
+
+/* ============================================================
+   THE SCENE — a real 3D model of a leased bay. One unit = one foot.
+   Every part draws into a named layer group; the same `placed`
+   set that drives the ring drives what is visible.
+   Cutaway = a clipping plane down the length of the bay.
+   Street is +z. Back of house is -z. The kitchen lives at x<0
+   so the cutaway half is the half worth looking at.
+   ============================================================ */
+const BW = 22, BD = 20, T = 0.67;      // half-width, half-depth, demising wall thickness
+const SLAB = 0.5;                       // finished floor
+const CEIL = 10;                        // ceiling grid
+const DECK = 16, ROOFT = 16.8, PARA = 19.5;
+const INX = BW - T, INZ = BD - T;       // inside faces
+
+/* openings. One list, many shells. */
+const HOLES_BACK  = [[12,16,SLAB,7.5]];                       // back wall (-z): the service door
+const HOLES_FRONT = [[-4,4,SLAB,8],[9,19,3,8.5],[-19,-9,3,8.5]];  // storefront (+z): door + two glass bays
+function bayWalls(inset){
+	const z = BD - T/2 - inset, x = BW - T/2 - inset, e = BD - T - inset;
+	return [
+		{d:'x', at:-z, a:-BW, b:BW, holes:HOLES_BACK},
+		{d:'z', at:-x, a:-e,  b:e},
+		{d:'z', at: x, a:-e,  b:e},
+	];
+}
+/* an opening is a hole: split the wall into the rectangles that are left */
+function segs(a, b, y0, y1, holes){
+	const hs = (holes||[]).slice().sort((p,q)=>p[0]-q[0]); const out=[]; let x=a;
+	for(const h of hs){
+		if(h[0] > x) out.push([x, h[0], y0, y1]);
+		if(h[2] > y0) out.push([h[0], h[1], y0, h[2]]);
+		if(h[3] < y1) out.push([h[0], h[1], h[3], y1]);
+		x = Math.max(x, h[1]);
+	}
+	if(x < b) out.push([x, b, y0, y1]);
+	return out.filter(s=>s[1]-s[0] > .01 && s[3]-s[2] > .01);
+}
+
+/* ---------- renderer, scene, camera ---------- */
+let renderer, scene, camera, root, clip, raf = null, dirty = true;
+const LG = {}, MATS = {};
+let CUR = null;
+const cam = {az:1.46, el:0.20, r:74, tx:0, ty:8, tz:-4, anim:null};
+const holder = document.getElementById('housebox');
+
+function mat(o){
+	const m = new THREE.MeshLambertMaterial(Object.assign({side:THREE.DoubleSide}, o));
+	m.userData = {op:(o&&o.opacity!==undefined)?o.opacity:1, tr:!!(o&&o.transparent), site:false};
+	(MATS[CUR] = MATS[CUR] || []).push(m);
+	return m;
+}
+function siteMat(o){ const m = mat(o); m.userData.site = true; return m; }
+function clipAll(){ for(const k in MATS) for(const m of MATS[k]) if(!m.userData.site) m.clippingPlanes = [clip]; }
+
+function box(w,h,d,x,y,z,m,g,rx){ const n=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); n.position.set(x,y,z); if(rx) n.rotation.x=rx; g.add(n); return n; }
+function cylY(r,h,x,y,z,m,g){ const n=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,10), m); n.position.set(x,y,z); g.add(n); return n; }
+function cylX(r,h,x,y,z,m,g){ const n=cylY(r,h,x,y,z,m,g); n.rotation.z=Math.PI/2; return n; }
+function cylZ(r,h,x,y,z,m,g){ const n=cylY(r,h,x,y,z,m,g); n.rotation.x=Math.PI/2; return n; }
+function ring(R,t,x,y,z,m,g,axis){ const n=new THREE.Mesh(new THREE.TorusGeometry(R,t,8,16), m); n.position.set(x,y,z);
+	if(axis==='y') n.rotation.x=Math.PI/2; if(axis==='x') n.rotation.y=Math.PI/2; g.add(n); return n; }
+function build(name, fn){ const g=new THREE.Group(); g.visible=false; root.add(g); LG[name]=g; CUR=name; fn(g); CUR=null; }
+
+/* ---------- canvas textures (no external files) ---------- */
+function makeTex(draw, size){
+	const c=document.createElement('canvas'); c.width=c.height=size||128;
+	draw(c.getContext('2d'), c.width);
+	const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+const TX = {};
+function textures(){
+	TX.block = makeTex((c,s)=>{ c.fillStyle='#8f8d88'; c.fillRect(0,0,s,s); c.strokeStyle='#6f6d68'; c.lineWidth=3;
+		c.beginPath(); c.moveTo(0,s-1.5); c.lineTo(s,s-1.5); c.moveTo(s/2,0); c.lineTo(s/2,s); c.stroke();
+		c.fillStyle='rgba(255,255,255,.05)'; for(let i=0;i<200;i++) c.fillRect(Math.random()*s,Math.random()*s,2,2); });
+	TX.conc = makeTex((c,s)=>{ c.fillStyle='#b3aea5'; c.fillRect(0,0,s,s);
+		for(let i=0;i<800;i++){ c.fillStyle=Math.random()>.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.06)'; c.fillRect(Math.random()*s,Math.random()*s,3,3);} });
+	TX.quarry = makeTex((c,s)=>{ c.fillStyle='#8d5a45'; c.fillRect(0,0,s,s); c.strokeStyle='#c9c3b4'; c.lineWidth=5;
+		c.strokeRect(0,0,s,s); c.fillStyle='rgba(0,0,0,.06)'; for(let i=0;i<260;i++) c.fillRect(Math.random()*s,Math.random()*s,3,3); });
+	TX.frp = makeTex((c,s)=>{ c.fillStyle='#eef1f2'; c.fillRect(0,0,s,s); c.strokeStyle='#dfe4e6'; c.lineWidth=3; c.strokeRect(1,1,s-2,s-2);
+		for(let i=0;i<400;i++){ c.fillStyle='rgba(0,0,0,.03)'; c.fillRect(Math.random()*s,Math.random()*s,2,2);} });
+	TX.acoust = makeTex((c,s)=>{ c.fillStyle='#e8e6df'; c.fillRect(0,0,s,s); c.strokeStyle='#b9b5ac'; c.lineWidth=4; c.strokeRect(2,2,s-4,s-4);
+		for(let i=0;i<300;i++){ c.fillStyle='rgba(0,0,0,.05)'; c.fillRect(Math.random()*s,Math.random()*s,2,2);} });
+	TX.steel = makeTex((c,s)=>{ const g=c.createLinearGradient(0,0,0,s); g.addColorStop(0,'#c6ced6'); g.addColorStop(.5,'#aab3bc'); g.addColorStop(1,'#c6ced6');
+		c.fillStyle=g; c.fillRect(0,0,s,s); c.strokeStyle='rgba(255,255,255,.28)'; c.lineWidth=1;
+		for(let i=0;i<s;i+=6){ c.beginPath(); c.moveTo(i,0); c.lineTo(i,s); c.stroke(); } });
+	TX.tpo = makeTex((c,s)=>{ c.fillStyle='#6f6c66'; c.fillRect(0,0,s,s); c.strokeStyle='#5e5b56'; c.lineWidth=4;
+		c.beginPath(); c.moveTo(0,s-2); c.lineTo(s,s-2); c.stroke(); });
+	TX.soil = makeTex((c,s)=>{ c.fillStyle='#2e241b'; c.fillRect(0,0,s,s);
+		for(let i=0;i<700;i++){ c.fillStyle=Math.random()>.5?'#3a2d22':'#241c15'; c.fillRect(Math.random()*s,Math.random()*s,4,4);} });
+	TX.asphalt = makeTex((c,s)=>{ c.fillStyle='#2a2b2e'; c.fillRect(0,0,s,s);
+		for(let i=0;i<600;i++){ c.fillStyle=Math.random()>.5?'#333438':'#232427'; c.fillRect(Math.random()*s,Math.random()*s,3,3);} });
+}
+function texMat(t, w, h, tileW, tileH, extra){
+	const tt = t.clone(); tt.needsUpdate = true;
+	tt.wrapS = tt.wrapT = THREE.RepeatWrapping;
+	tt.repeat.set(Math.max(.4, w/tileW), Math.max(.4, h/tileH));
+	return mat(Object.assign({map:tt}, extra||{}));
+}
+/* a wall shell: one textured box per leftover rectangle */
+function shell(list, y0, y1, th, tex, tileW, tileH, g, extra){
+	list.forEach(w=>{
+		segs(w.a, w.b, y0, y1, w.holes).forEach(s=>{
+			const len = s[1]-s[0], hgt = s[3]-s[2];
+			const m = tex ? texMat(tex, len, hgt, tileW, tileH, extra) : mat(extra);
+			if(w.d==='x') box(len, hgt, th, (s[0]+s[1])/2, (s[2]+s[3])/2, w.at, m, g);
+			else          box(th, hgt, len, w.at, (s[2]+s[3])/2, (s[0]+s[1])/2, m, g);
+		});
+	});
+}
+
+/* the little man with the magnifying glass */
+function numTex(n){ return makeTex((c,s)=>{ c.clearRect(0,0,s,s);
+	c.beginPath(); c.arc(s/2, s/2, s*0.40, 0, 7); c.fillStyle='rgba(10,12,18,.90)'; c.fill();
+	c.lineWidth = s*0.065; c.strokeStyle='#d4a24c'; c.stroke();
+	c.fillStyle='#f4ecd8'; c.font='bold '+(s*0.46)+'px Iowan Old Style,Palatino,Georgia,serif';
+	c.textAlign='center'; c.textBaseline='middle'; c.fillText(String(n), s/2, s/2 + s*0.03); }, 128); }
+function person(n, g){
+	const skin = mat({color:'#e8dcc8'}), coat = mat({color:'#cfd6dd'});
+	const p = new THREE.Group();
+	const body = new THREE.Mesh(new THREE.CylinderGeometry(.75,.95,3.4,10), coat); body.position.y=1.7; p.add(body);
+	const head = new THREE.Mesh(new THREE.SphereGeometry(.62,12,10), skin); head.position.y=3.9; p.add(head);
+	const arm = new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,1.7,8), coat); arm.position.set(1.0,2.6,.5); arm.rotation.z=-.9; p.add(arm);
+	const rg = new THREE.Mesh(new THREE.TorusGeometry(.62,.13,8,18), mat({color:'#d4a24c'})); rg.position.set(1.9,3.1,.6); p.add(rg);
+	const lens = new THREE.Mesh(new THREE.CircleGeometry(.6,18), mat({color:'#9fc4e8', transparent:true, opacity:.45})); lens.position.copy(rg.position); p.add(lens);
+	const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:numTex(n), transparent:true, depthTest:false}));
+	spr.scale.set(4.2,4.2,1); spr.position.set(0, 6.6 + (n%3)*1.9, 0); p.add(spr);
+	MATS[CUR].push(spr.material); spr.material.userData={op:1,tr:true,site:true};
+	g.add(p); return p;
+}
+
+/* ---- where things live, in feet. Data, not code paths. ---- */
+const TRENCH = [                                     // saw-cut lines: [x0,x1,z0,z1]
+	[-4, 3, -19, -6], [-19, -4, -9, -6], [-19, -16, -19, -9], [10, 14, -12, -2]];
+const FSINKS = [[-1,-15],[-1,-11],[-17,-8],[-17,-15]];   // floor sinks [x,z]
+const SINKS  = [[-17,-4],[-17,-7],[-13,-9],[12,-10],[12,-4]];  // rough plumbing risers
+const HOOD = {x0:-11, x1:3, z0:-18, z1:-11.5, y0:6.4, y1:9.2};
+const DUCT = {x:-4, z:-14.7, w:1.7};
+const MUA  = {x:-6, z:-4};
+const WALKIN = {x0:-21, x1:-13, z0:-19, z1:-11.5};
+const RR = {x0:-21, x1:-12, z0:1.5, z1:11};              // restrooms
+const PARTS_W = [                                        // interior partitions
+	{d:'x', at:-11.5, a:-21, b:-13},                     // walk-in front
+	{d:'z', at:-13,   a:-19, b:-11.5},                   // walk-in side
+	{d:'x', at:-2,    a:-BW+T, b:BW-T, holes:[[-12,-6,SLAB,7.5],[2,10,3.4,7]]},  // kitchen/dining wall: door + the pass
+	{d:'x', at:1.5,   a:-21, b:-12, holes:[[-19,-15,SLAB,7.5],[-14,-13.4,SLAB,7.5]]}, // restroom fronts
+	{d:'x', at:11,    a:-21, b:-12},
+	{d:'z', at:-12,   a:1.5, b:11},
+	{d:'z', at:-16.5, a:1.5, b:11},                      // between the two restrooms
+];
+const DINE = [[-6,4],[4,4],[13,4],[-6,12],[4,12],[13,12],[-6,-.5+18],[6,18],[16,18]];
+
+/* ============================================================
+   THE PARTS — one builder per layer, in the order they go in
+   ============================================================ */
+function buildAll(){
+	/* ---- the lot: never clipped, never a tile ---- */
+	const site = new THREE.Group(); root.add(site); CUR='site';
+	const lot = new THREE.Mesh(new THREE.PlaneGeometry(300,300), texMat(TX.asphalt, 300,300, 10,10));
+	lot.rotation.x = -Math.PI/2; lot.position.y = -0.03; site.add(lot);
+	box(BW*2+16, .25, 10, 0, SLAB, BD+5, mat({color:'#9c9890'}), site);                  // sidewalk
+	box(1.2, 8, 1.2, BW+7, 4, BD+2, mat({color:'#5a5f66'}), site);                       // a light pole out front
+	MATS.site.forEach(m=>m.userData.site = true);
+
+	/* ---- the bay you leased: always there, never a tile — but it DOES get cut ---- */
+	const bay = new THREE.Group(); root.add(bay); CUR='bay';
+	box(BW*2, SLAB, BD*2, 0, SLAB/2, 0, texMat(TX.conc, 44,40, 10,10), bay);             // the existing slab
+	shell(bayWalls(0), SLAB, DECK, T, TX.block, 1.33, .67, bay);                         // demising + back walls
+	box(BW*2+1, .8, BD*2+1, 0, DECK+.4, 0, texMat(TX.tpo, 44,40, 6,6), bay);             // roof deck + membrane
+	[[0,BD+.2,BW*2+1,.7],[0,-BD-.2,BW*2+1,.7],[BW+.2,0,.7,BD*2+1],[-BW-.2,0,.7,BD*2+1]]
+		.forEach(([x,z,w,d])=>box(w, PARA-ROOFT, d, x, (PARA+ROOFT)/2, z, mat({color:'#75726c'}), bay));   // parapet
+	const mull = mat({color:'#3c4148'}), glz = mat({color:'#7fa3c4', transparent:true, opacity:.26});
+	shell([{d:'x', at:BD-T/2, a:-BW, b:BW, holes:HOLES_FRONT}], SLAB, DECK, T, TX.block, 1.33,.67, bay);
+	HOLES_FRONT.forEach(h=>{
+		box(h[1]-h[0], h[3]-h[2], .35, (h[0]+h[1])/2, (h[2]+h[3])/2, BD-T/2, glz, bay);
+		box(h[1]-h[0]+.5, .45, .5, (h[0]+h[1])/2, h[3]+.2, BD-T/2, mull, bay);
+		[h[0],h[1]].forEach(x=>box(.45, h[3]-h[2], .5, x, (h[2]+h[3])/2, BD-T/2, mull, bay));
+	});
+	CUR = null;
+
+	build('permit', g=>{
+		box(4.2, 3.2, .2, 6, 6.4, BD-1.2, mat({color:'#f6f2e8'}), g);                     // permit board in the glass
+		box(3.2,.28,.28, 6, 7.4, BD-1.35, mat({color:'#b3382a'}), g);
+		box(3.2,.22,.28, 6, 6.6, BD-1.35, mat({color:'#a09a8c'}), g);
+		box(2.0,.22,.28, 5.4, 5.9, BD-1.35, mat({color:'#a09a8c'}), g);
+		[[-3,0],[3,0]].forEach(([dx])=>box(.3,2.6,.3, 14+dx, SLAB+1.3, 6, mat({color:'#8b6b4d'}), g));  // sawhorse
+		box(7,.25,3.4, 14, SLAB+2.7, 6, mat({color:'#e6e0d2'}), g);                       // the approved plans
+		cylZ(.28, 3.6, 15.6, SLAB+3.0, 6, mat({color:'#d8d2c2'}), g);
+	});
+
+	build('shell', g=>{                                                                   // demo + saw-cut
+		const cut = mat({color:'#241c15'});
+		TRENCH.forEach(([x0,x1,z0,z1])=>box(x1-x0, SLAB+.06, z1-z0, (x0+x1)/2, (SLAB+.06)/2, (z0+z1)/2, cut, g));
+		const dump = mat({color:'#4a6b48'});                                              // dumpster out the back door
+		box(8,5,6, 14, 2.5, -BD-6, dump, g); box(8.4,.4,6.4, 14, 5.2, -BD-6, mat({color:'#3d5a3c'}), g);
+		[[-6,-3],[2,-8],[9,4]].forEach(([x,z])=>box(2.4,.5,1.6, x, SLAB+.25, z, mat({color:'#6b6560'}), g)); // rubble
+	});
+
+	build('uwaste', g=>{
+		const grease = mat({color:'#b98f3a'}), san = mat({color:'#9aa4b0'}), cap = mat({color:'#c46a4a'});
+		cylZ(.55, 13, -1, -.35, -12.5, grease, g);                                        // grease branch under the line
+		cylX(.55, 18, -10, -.5, -6.6, grease, g);                                         // header to the back
+		cylZ(.55, 22, -18.4, -.7, -14, grease, g);                                        // out the back wall
+		FSINKS.forEach(([x,z])=>cylY(.42, 1.5, x, .1, z, grease, g));
+		cylZ(.5, 12, 12, -.5, -7, san, g); cylX(.5, 12, 17, -.7, -2, san, g);             // sanitary, the other system
+		SINKS.forEach(([x,z])=>{ cylY(.36, 1.6, x, .1, z, san, g); cylY(.4,.3, x, 1.0, z, cap, g); });
+	});
+
+	build('floorsink', g=>{
+		const gr = mat({color:'#cfd4da'}), dk = mat({color:'#20262e'});
+		FSINKS.forEach(([x,z])=>{ box(1.8,.7,1.8, x, SLAB-.3, z, gr, g); box(1.3,.4,1.3, x, SLAB-.02, z, dk, g); });
+	});
+
+	build('grease', g=>{
+		const conc = mat({color:'#7d7a72'}), water = mat({color:'#2b2f28'}), fat = mat({color:'#6d6a35'});
+		box(11, 6.5, 8, -6, -3.6, -BD-8, conc, g);                                        // the interceptor, buried
+		box(10, 5.6, 7, -6, -3.6, -BD-8, water, g);
+		box(10, 1.3, 7, -6, -1.5, -BD-8, fat, g);                                         // the grease layer
+		box(.6, 5.6, 7, -6, -3.6, -BD-8, conc, g);                                        // the baffle: two chambers
+		[[-9.5],[-2.5]].forEach(([x])=>{ cylY(1.5, 4, x, -.2, -BD-8, conc, g); cylY(1.8,.35, x, 1.85, -BD-8, mat({color:'#c3c0b8'}), g); });
+		cylZ(.55, 8, -18.4, -.9, -BD-4, mat({color:'#b98f3a'}), g);
+		cylY(.5, 2, -1, .1, -BD-13, mat({color:'#d8d0c2'}), g);                           // the sample point
+	});
+
+	build('water', g=>{
+		const pipe = mat({color:'#9aa4b0'}), brass = mat({color:'#b98f3a'});
+		box(3,2,2.2, 19, SLAB+1.2, -BD-2.4, mat({color:'#8a8781'}), g);                   // meter box
+		cylX(.3, 5, 19, SLAB+3.4, -BD-2.4, pipe, g);
+		box(1.1,2.4,1.1, 20.4, SLAB+3.4, -BD-2.4, brass, g);                              // the RPZ
+		cylY(.35, 2.6, 21.4, SLAB+3.0, -BD-2.4, pipe, g);
+		cylZ(.3, 4, 19, SLAB+3.4, -BD-1, pipe, g);
+	});
+
+	build('walls', g=>{
+		shell(PARTS_W, SLAB, CEIL-.4, .42, TX.frp, 4, 8, g, {color:'#cfd3d6'});
+		[[WALKIN,'wk'],[RR,'rr']].forEach(()=>{});
+		box(8.4,.4,7.9, -17, CEIL-.4, -15.2, mat({color:'#b9bdc1'}), g);                  // walk-in enclosure top
+	});
+
+	build('blocking', g=>{
+		const wood = mat({color:'#c48f57'});
+		[[-20.4,3.0,6.5],[-20.4,2.6,6.5],[-13.4,3.0,6.5]].forEach(([x,y,z])=>box(.5,.6,7, x, SLAB+y, z, wood, g)); // grab bars
+		box(7,.6,.5, -17, SLAB+3.0, 1.7, wood, g);
+		[[-17,4.2,-6.5],[8,4.2,-2.3],[-13,3.4,-9]].forEach(([x,y,z])=>box(6,.6,.5, x, SLAB+y, z, wood, g));        // shelves, hand sinks
+		box(.5,.6,7, -12.8, SLAB+5.6, -15.2, wood, g);                                    // hood hanger backing
+	});
+
+	build('power', g=>{
+		const pan = mat({color:'#3b4048'}), br = mat({color:'#c9a83a'}), wire = mat({color:'#e6c34a'});
+		box(3,4.5,1, 19.6, SLAB+5, -14, pan, g);
+		for(let i=0;i<8;i++) box(2.2,.28,.3, 19.6, SLAB+3.4+i*.5, -14.6, br, g);
+		[[-14,-6],[-1,-14],[8,-8],[-17,-4],[12,-6]].forEach(([x,z])=>{
+			cylX(.13, Math.abs(19-x), (19+x)/2, CEIL-.9, z, wire, g);
+			cylY(.13, 4, x, CEIL-2.9, z, wire, g); });
+		cylZ(.13, 22, 19, CEIL-.9, -8, wire, g);
+	});
+
+	build('roughp', g=>{
+		const pvc = mat({color:'#e6e2da'}), hot = mat({color:'#c46a4a'}), cold = mat({color:'#6f92b8'});
+		SINKS.forEach(([x,z])=>{ cylY(.3, 3.4, x, SLAB+1.7, z, pvc, g);
+			cylY(.14, 2.6, x-.5, SLAB+1.3, z, hot, g); cylY(.14, 2.6, x+.5, SLAB+1.3, z, cold, g); });
+		cylX(.14, 30, 4, CEIL-1.4, -8, hot, g); cylX(.14, 30, 4, CEIL-1.4, -8.7, cold, g);
+		box(2.4,5,2.4, 18, SLAB+2.5, -18, mat({color:'#b0b6bd'}), g);                      // water heater
+		cylY(1.1, 5.2, 18, SLAB+2.6, -18, mat({color:'#c3c9cf'}), g);
+	});
+
+	build('gas', g=>{
+		const gp = mat({color:'#c9762a'});
+		cylZ(.26, 16, 20, SLAB+6.5, -12, gp, g);
+		cylX(.26, 24, 8, SLAB+6.5, -19.4, gp, g);
+		[-8,-4,0].forEach(x=>{ cylY(.2, 5.4, x, SLAB+3.4, -16.4, gp, g); box(.7,.5,.5, x, SLAB+5.6, -16.4, mat({color:'#f0b884'}), g); });
+		box(1.5,1.5,.7, 20, SLAB+8.4, -12, mat({color:'#c2413a'}), g);                     // the test gauge
+		ring(.7,.12, 20, SLAB+8.4, -11.6, mat({color:'#f2e9d2'}), g, 'x');
+	});
+
+	build('hood', g=>{
+		const st = texMat(TX.steel, 14, 3, 6, 6, {color:'#dfe6ec'});
+		const cx = (HOOD.x0+HOOD.x1)/2, cz = (HOOD.z0+HOOD.z1)/2;
+		const w = HOOD.x1-HOOD.x0, d = HOOD.z1-HOOD.z0;
+		box(w, .35, d, cx, HOOD.y1, cz, st, g);                                            // the top
+		[[HOOD.z0,-1],[HOOD.z1,1]].forEach(([z,s])=>{                                      // sloped front and back
+			const n = box(w, 2.9, .3, cx, HOOD.y0+1.4, z, st, g); n.rotation.x = s*0.42; });
+		[[HOOD.x0,-1],[HOOD.x1,1]].forEach(([x])=>box(.3, 2.9, d, x, HOOD.y0+1.4, cz, st, g));
+		const filt = mat({color:'#dfe6ec'});
+		for(let x=HOOD.x0+1.2; x<HOOD.x1-.6; x+=2.2){ const n = box(1.9, 2.0, .28, x, HOOD.y0+1.2, cz-1.4, filt, g); n.rotation.x = 0.5; }
+		box(w-1, .3, .6, cx, HOOD.y0-.05, cz-1.9, mat({color:'#9aa3ab'}), g);              // grease cup rail
+		[HOOD.x0+.6, HOOD.x1-.6].forEach(x=>[HOOD.z0+.6,HOOD.z1-.6].forEach(z=>cylY(.11, DECK-HOOD.y1, x, (DECK+HOOD.y1)/2, z, mat({color:'#8d959e'}), g)));
+	});
+
+	const ductRun = (g, taped)=>{
+		const body = taped ? mat({color:'#9a948a'}) : texMat(TX.steel, 2, 8, 5, 5);
+		box(DUCT.w, DECK+1.6-HOOD.y1, DUCT.w, DUCT.x, (DECK+1.6+HOOD.y1)/2, DUCT.z, body, g);
+		if(taped){
+			const tape = mat({color:'#3f4348'}), screw = mat({color:'#e0c26a'});
+			[10.6,12.6,14.6].forEach(y=>{
+				box(DUCT.w+.14, .4, DUCT.w+.14, DUCT.x, y, DUCT.z, tape, g);
+				[[-1,0],[1,0],[0,-1],[0,1]].forEach(([sx,sz])=>cylY(.09,.3, DUCT.x+sx*DUCT.w/2, y, DUCT.z+sz*DUCT.w/2, screw, g)); });
+		} else {
+			const bead = mat({color:'#e8e4dc'});
+			[10.6,12.6,14.6].forEach(y=>{ ring(DUCT.w*0.72, .09, DUCT.x, y, DUCT.z, bead, g, 'y'); });
+			box(1.1,.9,.25, DUCT.x, 11.6, DUCT.z+DUCT.w/2+.1, mat({color:'#b7bec6'}), g);   // a cleanout door
+		}
+	};
+	build('duct',     g=>ductRun(g, false));
+	build('ducttape', g=>ductRun(g, true));
+
+	build('wrap', g=>{
+		const wr = mat({color:'#ddd0b0'});
+		const s = DUCT.w + .9, y0 = HOOD.y1, y1 = DECK + .2;
+		[[-1,0],[1,0],[0,-1],[0,1]].forEach(([sx,sz])=>
+			box(sx? .45 : s, y1-y0, sz? .45 : s, DUCT.x + sx*(s/2), (y0+y1)/2, DUCT.z + sz*(s/2), wr, g));
+	});
+
+	build('fan', g=>{
+		const curb = mat({color:'#6d6a63'}), hs = mat({color:'#aab3bc'}), dk = mat({color:'#3b4048'});
+		box(4.2, 1.6, 4.2, DUCT.x, ROOFT+.8, DUCT.z, curb, g);
+		const n = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.4, 2.4, 12), hs);
+		n.position.set(DUCT.x, ROOFT+2.8, DUCT.z); g.add(n); MATS.fan.push(hs);
+		cylY(.5, 1.2, DUCT.x, ROOFT+4.4, DUCT.z, dk, g);
+		box(2,1.4,1.4, DUCT.x+3, ROOFT+1.6, DUCT.z, mat({color:'#8d959e'}), g);             // the grease box
+		ring(1.6,.13, DUCT.x, ROOFT+4.0, DUCT.z, dk, g, 'y');
+	});
+
+	build('ansul', g=>{
+		const red = mat({color:'#c2413a'}), noz = mat({color:'#f2a8a8'}), pipe = mat({color:'#d8dde2'});
+		box(1.6, 4.2, 1.6, HOOD.x1+2.2, SLAB+5.4, HOOD.z0+1.2, red, g);                     // the tank
+		cylY(.75, 3.6, HOOD.x1+2.2, SLAB+5.4, HOOD.z0+1.2, mat({color:'#d9524a'}), g);
+		cylX(.13, 4.4, HOOD.x1+.2, HOOD.y0+1.6, HOOD.z0+1.2, pipe, g);
+		cylX(.13, HOOD.x1-HOOD.x0, (HOOD.x0+HOOD.x1)/2, HOOD.y0+1.4, (HOOD.z0+HOOD.z1)/2, pipe, g);
+		[-8.5,-5,-1.5,1.5].forEach(x=>{ cylY(.16,.7, x, HOOD.y0+.9, (HOOD.z0+HOOD.z1)/2, noz, g);
+			const c=new THREE.Mesh(new THREE.ConeGeometry(.3,.5,8), noz); c.position.set(x, HOOD.y0+.45, (HOOD.z0+HOOD.z1)/2); c.rotation.x=Math.PI; g.add(c); });
+		cylY(.16,.7, DUCT.x, HOOD.y1-.3, DUCT.z, noz, g);                                   // and one in the duct collar
+	});
+
+	build('links', g=>{
+		const wire = mat({color:'#f2a8a8'}), link = mat({color:'#e8e4dc'}), red = mat({color:'#c2413a'});
+		cylX(.06, HOOD.x1-HOOD.x0, (HOOD.x0+HOOD.x1)/2, HOOD.y0+2.2, HOOD.z0+.8, wire, g);
+		[-8.5,-5,-1.5,1.5].forEach(x=>box(.3,.3,.3, x, HOOD.y0+2.2, HOOD.z0+.8, link, g));
+		box(1.1, 1.6, .5, 5.4, SLAB+3.9, -2.4, red, g);                                     // the pull station, on the way out
+		box(.7,.7,.2, 5.4, SLAB+4.1, -2.1, mat({color:'#f6f2e8'}), g);
+		cylY(.09, 1.2, 5.4, SLAB+2.9, -2.3, mat({color:'#e8e4dc'}), g);
+	});
+
+	build('interlock', g=>{
+		const red = mat({color:'#c2413a'}), cond = mat({color:'#c46a4a'});
+		box(1.3,1.5,1.3, 8, SLAB+6.5, -19.4, red, g);                                       // the electric gas valve
+		cylX(.09, 12, 12, SLAB+7.6, -19.4, cond, g);
+		cylZ(.09, 8, 18, SLAB+7.6, -16, cond, g);
+		cylY(.09, 3, 18, SLAB+9.2, -14.2, cond, g);
+		cylX(.09, 14, -1, CEIL-1.9, -6, cond, g);
+		cylZ(.09, 6, 5.4, CEIL-1.9, -4.6, cond, g);
+	});
+
+	build('mua', g=>{
+		const hs = mat({color:'#8d959e'}), pan = texMat(TX.steel, 7, 3, 5, 5), duct = mat({color:'#9aa4b0'});
+		box(7, 3.4, 5.4, MUA.x, ROOFT+1.7, MUA.z, pan, g);
+		for(let i=0;i<6;i++) box(.25, 2.6, 5.2, MUA.x-2.8+i*1.1, ROOFT+1.7, MUA.z, hs, g);   // the louvre face
+		box(3, ROOFT-CEIL+1.4, 3, MUA.x, (ROOFT+CEIL-.6)/2, MUA.z, duct, g);                 // the drop
+		[[-4,0],[3,-4],[3,4]].forEach(([dx,dz])=>{                                           // the diffusers
+			box(2.4,.35,2.4, MUA.x+dx, CEIL-.55, MUA.z+dz, mat({color:'#c9ced4'}), g);
+			box(1.8,.15,1.8, MUA.x+dx, CEIL-.78, MUA.z+dz, mat({color:'#e2e7eb'}), g); });
+		cylX(.16, 7, MUA.x+3.6, ROOFT+2.4, MUA.z, mat({color:'#c46a4a'}), g);                // the interlock conduit
+	});
+
+	build('nomua', g=>{
+		const curb = mat({color:'#5a5f66'});                                                 // a curb, and nothing on it
+		[[0,-2.9],[0,2.9],[-3.6,0],[3.6,0]].forEach(([dx,dz])=>
+			box(dx?.5:7.6, .8, dz?.5:6.2, MUA.x+dx, ROOFT+.4, MUA.z+dz, curb, g));
+		box(6.6, .12, 5.2, MUA.x, ROOFT+.06, MUA.z, mat({color:'#4b5158'}), g);
+	});
+
+	build('sprink', g=>{
+		const pipe = mat({color:'#9aa4b0'}), head = mat({color:'#c9ced4'}), red = mat({color:'#c2413a'});
+		cylX(.32, BW*2-3, 0, DECK-1.6, -8, pipe, g);
+		cylZ(.32, BD*2-6, 6, DECK-1.6, 2, pipe, g);
+		[[-17,-14],[-9,-14],[-1,-8],[8,-8],[-8,2],[6,2],[16,2],[-8,12],[6,12],[16,12]].forEach(([x,z])=>{
+			cylY(.12, DECK-1.6-CEIL, x, (DECK-1.6+CEIL)/2, z, pipe, g);
+			cylY(.22,.35, x, CEIL-.3, z, head, g); });
+		box(2,2.6,.6, 19.6, SLAB+5, -6, red, g);                                             // the alarm panel
+		box(1.4,.5,.3, 19.6, SLAB+6.2, -6.4, mat({color:'#f2e9d2'}), g);
+	});
+
+	build('floor', g=>{
+		box(BW*2-1.4, .22, BD*2-1.4, 0, SLAB+.11, 0, texMat(TX.quarry, 44,40, 1.2,1.2), g);
+		const cove = mat({color:'#7d4f3c'});                                                  // the coved base, every wall
+		[[0,-BD+T+.3,BW*2-1.4,.5],[0,BD-T-.3,BW*2-1.4,.5],[-BW+T+.3,0,.5,BD*2-1.4],[BW-T-.3,0,.5,BD*2-1.4]]
+			.forEach(([x,z,w,d])=>box(w,.9,d,x,SLAB+.55,z,cove,g));
+		PARTS_W.forEach(w=>{ const len=w.b-w.a, c=(w.a+w.b)/2;
+			if(w.d==='x') box(len,.9,.5, c, SLAB+.55, w.at, cove, g); else box(.5,.9,len, w.at, SLAB+.55, c, cove, g); });
+	});
+
+	build('finish', g=>{
+		const grid = mat({color:'#c3c8cc'});
+		const tile = new THREE.Mesh(new THREE.PlaneGeometry(BW*2-2, BD*2-2), texMat(TX.acoust, 44,40, 2,4, {color:'#d6d3cb'}));
+		tile.rotation.x = Math.PI/2; tile.position.y = CEIL; g.add(tile); MATS.finish.push(tile.material);
+		for(let x=-BW+2; x<=BW-2; x+=4) box(.14,.22,BD*2-2, x, CEIL+.1, 0, grid, g);
+		for(let z=-BD+2; z<=BD-2; z+=4) box(BW*2-2,.22,.14, 0, CEIL+.1, z, grid, g);
+		shell([{d:'x', at:-BD+T+.25, a:-BW+T, b:BW-T}], SLAB, CEIL-.4, .18, TX.frp, 4, 8, g);  // FRP inside the block face
+		shell(PARTS_W, SLAB, CEIL-.4, .16, TX.frp, 4, 8, g, {color:'#f0f3f4'});
+		const lens = mat({color:'#f4f0e4'}), can = mat({color:'#dfe3e6'});
+		[[-16,-14],[-4,-14],[-16,-5],[8,-12],[-8,4],[6,4],[16,4],[-8,14],[6,14],[16,14]].forEach(([x,z])=>{
+			box(3.8,.3,1.6, x, CEIL-.2, z, can, g); box(3.4,.12,1.2, x, CEIL-.38, z, lens, g); });
+	});
+
+	build('walkin', g=>{
+		const pan = mat({color:'#dfe6e4'}), dark = mat({color:'#8fb5ab'}), cu = mat({color:'#c47a3a'}), wrap = mat({color:'#1d1d1f'});
+		const w = WALKIN.x1-WALKIN.x0, d = WALKIN.z1-WALKIN.z0, cx=(WALKIN.x0+WALKIN.x1)/2, cz=(WALKIN.z0+WALKIN.z1)/2;
+		box(w, 8, d, cx, SLAB+4, cz, pan, g);
+		box(w-.5, 7.6, d-.5, cx, SLAB+4, cz, dark, g);
+		box(3, 6.5, .3, cx+1.6, SLAB+3.3, WALKIN.z1, mat({color:'#eef2f1'}), g);              // the door
+		cylZ(.16,.8, cx+2.9, SLAB+3.3, WALKIN.z1+.3, mat({color:'#9aa3ab'}), g);
+		box(.4,.9,d-1, WALKIN.x0+.3, SLAB+.45, cz, mat({color:'#cfd8d5'}), g);                // coved into the box
+		box(5,2.6,4, cx, ROOFT+1.3, cz, mat({color:'#b0b6bd'}), g);                           // condenser on the roof
+		cylY(.9,.5, cx, ROOFT+2.7, cz, mat({color:'#4b5058'}), g);
+		[[.22,cu],[.44,wrap]].forEach(([r,m])=>{                                              // the whole suction line, wrapped
+			cylY(r, ROOFT-CEIL+1, cx-2, (ROOFT+CEIL-1)/2, cz, m, g);
+			cylY(r, CEIL-SLAB-7.4, cx-2, SLAB+8+(CEIL-SLAB-8)/2, cz, m, g); });
+		cylY(.2, 1.6, WALKIN.x0+1.4, SLAB+.6, WALKIN.z1-1.4, mat({color:'#d9dee4'}), g);      // condensate to a floor sink
+	});
+
+	build('line', g=>{
+		const st = texMat(TX.steel, 4, 3, 5, 5), dk = mat({color:'#5a616a'}), top = mat({color:'#c6ced6'});
+		for(let x=HOOD.x0+1; x<HOOD.x1-1; x+=3.4){                                            // the cook line
+			box(3.1, 3, 2.8, x, SLAB+1.5, -15.2, st, g);
+			box(3.1, .25, 2.8, x, SLAB+3.1, -15.2, top, g);
+			[[-.8,-.7],[.8,-.7],[-.8,.7],[.8,.7]].forEach(([dx,dz])=>cylY(.22,.2, x+dx, SLAB+3.3, -15.2+dz, dk, g)); }
+		box(9, 3, 2.6, -17, SLAB+1.5, -5.6, st, g);                                           // the three-compartment sink
+		for(let i=0;i<3;i++) box(2.3, .5, 2.0, -19.6+i*2.6, SLAB+3.0, -5.6, dk, g);
+		box(4, 3.2, 3, -13, SLAB+1.6, -9.6, st, g);                                           // dishmachine
+		box(3.6, 1.2, 2.6, -13, SLAB+3.6, -9.6, mat({color:'#9aa3ab'}), g);
+		box(3.4, 5, 3, 11, SLAB+2.5, -10, st, g);                                             // ice machine
+		box(3.2, 1.4, 2.8, 11, SLAB+5.4, -10, mat({color:'#cfd8dd'}), g);
+		box(7, 3, 2.6, 8, SLAB+1.5, -5, st, g);                                               // prep table
+		[[-17,-4.5],[8,-2.6],[-13,-11.6]].forEach(([x,z])=>{ box(1.6,1.2,1.4, x, SLAB+3.4, z, st, g); }); // hand sinks
+	});
+
+	build('airgap', g=>{
+		const pipe = mat({color:'#d9dee4'}), good = mat({color:'#7fa07a'});
+		FSINKS.forEach(([x,z])=>{ cylY(.22, 2.2, x, SLAB+1.9, z, pipe, g); ring(.45,.09, x, SLAB+.95, z, good, g, 'y'); });
+		[[-17,-5.6],[-13,-9.6],[11,-10]].forEach(([x,z])=>cylY(.22, 1.6, x, SLAB+2.2, z, pipe, g));
+	});
+	build('hardpipe', g=>{
+		const pipe = mat({color:'#c8ced4'});
+		FSINKS.forEach(([x,z])=>cylY(.24, 3.1, x, SLAB+1.55, z, pipe, g));                    // straight into the floor
+		[[-17,-5.6],[-13,-9.6],[11,-10]].forEach(([x,z])=>cylY(.24, 3.1, x, SLAB+1.55, z, pipe, g));
+	});
+
+	build('restroom', g=>{
+		const por = mat({color:'#f4f2ec'}), bar = mat({color:'#b9a8e0'}), purple = mat({color:'#8b79bd', transparent:true, opacity:.30});
+		[[-19,0],[-14.5,0]].forEach(([x])=>{
+			box(1.6,1.5,2.4, x, SLAB+.75, 8.4, por, g);                                       // water closet
+			box(1.8,2.0,.8, x, SLAB+1.6, 9.5, por, g);
+			box(3.4,.4,.5, x-.6, SLAB+2.9, 9.8, bar, g);                                      // grab bars, 33–36 in
+			box(.5,.4,3.0, x+1.1, SLAB+2.9, 8.6, bar, g);
+			box(2.4,.6,1.6, x, SLAB+2.6, 3.0, por, g);                                        // lavatory at 34 in
+			cylY(.14, 1.2, x, SLAB+1.7, 3.0, mat({color:'#c9bee6'}), g);                       // wrapped trap
+			const t = new THREE.Mesh(new THREE.CircleGeometry(2.5, 28), purple);               // the 60 in turning space
+			t.rotation.x = -Math.PI/2; t.position.set(x, SLAB+.2, 6.2); g.add(t); MATS.restroom.push(purple); });
+	});
+
+	build('dining', g=>{
+		const tp = mat({color:'#8f6f4b'}), acc = mat({color:'#8b79bd'}), leg = mat({color:'#6d5a44'}), ch = mat({color:'#4f5560'});
+		DINE.forEach(([x,z],i)=>{
+			const isAcc = (i===0 || i===5);
+			cylY(2.1, .3, x, SLAB+2.4, z, isAcc?acc:tp, g);
+			cylY(.25, 2.2, x, SLAB+1.2, z, leg, g);
+			cylY(1.1, .18, x, SLAB+.1, z, leg, g);
+			[[-2.9,0],[2.9,0]].forEach(([dx,dz])=>{ box(1.5,.2,1.5, x+dx, SLAB+1.5, z+dz, ch, g); box(1.5,1.6,.2, x+dx*1.25, SLAB+2.3, z+dz, ch, g); }); });
+		const route = mat({color:'#8b79bd', transparent:true, opacity:.22});
+		box(4, .1, BD*2-6, 9.5, SLAB+.3, 4, route, g);
+		box(BW*2-8, .1, 4, 0, SLAB+.3, 16, route, g);
+	});
+
+	build('exit', g=>{
+		const dk = mat({color:'#20272f'}), grn = mat({color:'#7fa07a'}), red = mat({color:'#c2413a'}), amb = mat({color:'#f0d98a'});
+		[[0, BD-1.2, 9],[14, -BD+1.2, 8]].forEach(([x,z,y])=>{
+			box(3.2,.9,.5, x, SLAB+y-.5, z, dk, g); box(2.6,.6,.2, x, SLAB+y-.5, z + (z>0?-.35:.35), grn, g); });
+		box(7.4,.35,.4, 0, SLAB+3.2, BD-1.1, red, g);                                          // the panic bar
+		box(3.4,.35,.4, 14, SLAB+3.2, -BD+1.1, red, g);
+		[[-12,BD-2],[12,BD-2],[0,-BD+2]].forEach(([x,z])=>{                                     // emergency lights
+			box(1.6,.9,.7, x, SLAB+8.6, z, dk, g);
+			[-.5,.5].forEach(dx=>cylZ(.28,.5, x+dx, SLAB+8.6, z + (z>0?-.5:.5), amb, g)); });
+	});
+
+	build('extg', g=>{
+		const red = mat({color:'#c2413a'}), sil = mat({color:'#9aa3ab'});
+		[[5.4, -4.2],[-19, -2.6]].forEach(([x,z],i)=>{
+			cylY(.5, 2.2, x, SLAB+3.2, z, i?mat({color:'#b3382a'}):red, g);
+			cylY(.16,.6, x, SLAB+4.5, z, sil, g);
+			box(1.0,.7,.12, x, SLAB+3.6, z+.55, mat({color:'#f6f2e8'}), g); });
+	});
+
+	build('stock', g=>{
+		const disp = mat({color:'#e8e4dc'}), soap = mat({color:'#f0d98a'}), th = mat({color:'#f6f2e8'});
+		[[-17,-4.5],[8,-2.6],[-13,-11.6],[-19,3],[-14.5,3]].forEach(([x,z])=>{
+			box(.9,1.2,.4, x-.9, SLAB+5.2, z, disp, g); box(.7,1.0,.4, x+.2, SLAB+5.2, z, soap, g); });
+		box(1.2,1.6,.25, -17.4, SLAB+6.6, -11.4, th, g);                                        // walk-in thermometer
+		box(9,3.4,.35, 6, SLAB+7.4, -2.3, mat({color:'#1b232c'}), g);                           // the menu board over the pass
+		box(7.4,.35,.4, 6, SLAB+8.4, -2.5, mat({color:'#d4a24c'}), g);
+	});
+
+	/* the inspector stands where he checked */
+	const SPOT = {gate1:[16,SLAB,BD+3], gate2:[-1,SLAB,-9], gate3:[-6,0,-BD-14], gate4:[13,SLAB,-14],
+	              gate5:[DUCT.x+6,ROOFT+.8,DUCT.z], gate6:[8,SLAB,-4], gate7:[MUA.x-7,ROOFT+.8,MUA.z],
+	              gate8:[-17,SLAB,7], gate9:[-6,SLAB,BD-4], gate10:[-13,SLAB,-4]};
+	Object.keys(SPOT).forEach((k,i)=>build(k, g=>{
+		const p = person(i+1, g); p.position.set(SPOT[k][0], SPOT[k][1], SPOT[k][2]);
+		p.rotation.y = Math.atan2(-SPOT[k][0], -SPOT[k][2]) + 0.4;
+		MATS[k].forEach(m=>m.userData.site = true);
+	}));
+}
+
+/* ============================================================
+   VISIBILITY — the same `placed` set, in three dresses
+   ============================================================ */
+const L = layer => PARTS.some(p=>p.layer===layer && state.placed.has(p.id));
+const OVERRIDE = { shell: ()=> L('shell') && !L('floor') };
+
+function redraw(){
+	if(!renderer) return;
+	for(const name in LG) LG[name].visible = OVERRIDE[name] ? OVERRIDE[name]() : L(name);
+	applyView();
+}
+
+function applyView(){
+	if(!renderer) return;
+	const v = state.view;
+	renderer.localClippingEnabled = (v === 'cutaway');
+	const lit = new Set();
+	if(v === 'inspector'){
+		const openGate = PARTS.find(p=>p.gate && !state.placed.has(p.id));
+		(openGate ? openGate.lit : []).forEach(x=>lit.add(x));
+	}
+	/* a customer does not see the inspectors */
+	for(const k in LG) if(/^gate/.test(k)) LG[k].visible = (v !== 'street') && L(k);
+	for(const name in MATS){
+		const on = v !== 'inspector' || lit.has(name) || /^gate/.test(name) || name==='site';
+		MATS[name].forEach(m=>{
+			m.transparent = m.userData.tr || !on;
+			m.opacity = on ? m.userData.op : 0.07;
+			if(m.emissive) m.emissive.setHex(v==='inspector' && lit.has(name) ? 0x554013 : 0x000000);
+			m.needsUpdate = true;
+		});
+	}
+	dirty = true;
+}
+document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', ()=>{
+	document.querySelectorAll('.toggle button').forEach(x=>x.classList.toggle('on', x===b));
+	state.view = b.dataset.view; applyView();
+	const p = {cutaway:[1.46,0.20,74,0,8,-4], street:[0.02,0.06,27,0,5.2,-5], inspector:[cam.az,cam.el,Math.min(cam.r,80),0,8,-4]}[state.view];
+	flyTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+	say('', state.view==='street' ? '<b>The dining room.</b> Stand where a customer stands. A screwed duct, no make-up air and a hard-piped sink drain look exactly like this too.'
+		: state.view==='inspector' ? '<b>Inspector view.</b> Only what the open gate checks is lit. If he cannot see it, he cannot pass it.'
+		: '<b>Cutaway.</b> A plane cuts the bay down its length. Spin it and look inside — under the slab, the walls, the hood, the ceiling, the room.');
+}));
+
+/* ============================================================
+   CAMERA — drag to spin, scroll to zoom, pinch on a phone
+   ============================================================ */
+function place(){
+	const ce = Math.max(-1.35, Math.min(1.45, cam.el));
+	camera.position.set(cam.tx + cam.r*Math.sin(cam.az)*Math.cos(ce),
+	                    cam.ty + cam.r*Math.sin(ce),
+	                    cam.tz + cam.r*Math.cos(cam.az)*Math.cos(ce));
+	camera.lookAt(cam.tx, cam.ty, cam.tz);
+	dirty = true;
+}
+function flyTo(az, el, r, tx, ty, tz){
+	cam.anim = {az0:cam.az, el0:cam.el, r0:cam.r, tx0:cam.tx, ty0:cam.ty, tz0:cam.tz,
+		az, el, r, tx:(tx===undefined?cam.tx:tx), ty:(ty===undefined?cam.ty:ty), tz:(tz===undefined?cam.tz:tz),
+		t0:performance.now(), ms:700}; }
+function orbitInit(){
+	const c = renderer.domElement; let p = null, pinch = 0;
+	c.style.touchAction = 'none';
+	c.addEventListener('pointerdown', e=>{ p = {x:e.clientX, y:e.clientY}; cam.anim=null; c.setPointerCapture(e.pointerId); });
+	c.addEventListener('pointermove', e=>{ if(!p) return;
+		cam.az -= (e.clientX - p.x) * 0.008; cam.el += (e.clientY - p.y) * 0.006;
+		p = {x:e.clientX, y:e.clientY}; place(); });
+	const stop = ()=>{ p = null; };
+	c.addEventListener('pointerup', stop); c.addEventListener('pointercancel', stop); c.addEventListener('pointerleave', stop);
+	c.addEventListener('wheel', e=>{ e.preventDefault(); cam.anim=null;
+		cam.r = Math.max(26, Math.min(180, cam.r * (1 + Math.sign(e.deltaY)*0.09))); place(); }, {passive:false});
+	c.addEventListener('touchmove', e=>{ if(e.touches.length!==2) return; e.preventDefault();
+		const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+		if(pinch) { cam.r = Math.max(26, Math.min(180, cam.r * pinch/d)); place(); }
+		pinch = d; }, {passive:false});
+	c.addEventListener('touchend', ()=>{ pinch = 0; });
+}
+
+/* ============================================================
+   THE LEAK — blue drips where the part would not go
+   ============================================================ */
+const drips = [];
+function leak(e){
+	let x = 0, y = CEIL, z = 8;
+	if(e && e.clientX && renderer){
+		const r = renderer.domElement.getBoundingClientRect();
+		const nx = ((e.clientX - r.left)/r.width)*2 - 1, ny = -((e.clientY - r.top)/r.height)*2 + 1;
+		const rc = new THREE.Raycaster(); rc.setFromCamera({x:nx, y:ny}, camera);
+		const hit = new THREE.Vector3();
+		if(rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,1), 0), hit)){
+			x = Math.max(-BW, Math.min(BW, hit.x)); y = Math.max(2, Math.min(DECK, hit.y));
+		}
+	}
+	for(let i=0;i<6;i++){
+		const m = new THREE.Mesh(new THREE.SphereGeometry(.42, 8, 6), new THREE.MeshBasicMaterial({color:0x6f92b8, transparent:true, opacity:.95}));
+		m.position.set(x + (Math.random()-.5)*3, y + i*.5, z + (Math.random()-.5)*3);
+		root.add(m); drips.push({m, t:performance.now() + i*90, v:0});
+	}
+	dirty = true;
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function scene3d(){
+	const c = document.createElement('canvas');
+	c.style.cssText = 'width:100%;height:100%;display:block;border-radius:14px;cursor:grab';
+	holder.appendChild(c);
+	renderer = new THREE.WebGLRenderer({canvas:c, antialias:true});
+	renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+	scene = new THREE.Scene();
+	scene.background = new THREE.Color(0x0b1119);
+	scene.fog = new THREE.Fog(0x0b1119, 150, 300);
+	camera = new THREE.PerspectiveCamera(38, 1, 0.5, 500);
+	root = new THREE.Group(); scene.add(root);
+	scene.add(new THREE.HemisphereLight(0xbfd4ee, 0x30281e, 0.85));
+	const sun = new THREE.DirectionalLight(0xfff0d0, 0.85); sun.position.set(48, 66, 34); scene.add(sun);
+	const fill = new THREE.DirectionalLight(0x88a8cc, 0.30); fill.position.set(-40, 24, -30); scene.add(fill);
+	clip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1.5);   // cut down the length; keep the kitchen half
+	textures(); buildAll(); clipAll(); orbitInit(); place(); resize3d();
+	loop();
+}
+function resize3d(){
+	if(!renderer) return;
+	const w = holder.clientWidth, h = holder.clientHeight;
+	if(w < 2 || h < 2) return;
+	renderer.setSize(w, h, false);
+	camera.aspect = w/h; camera.updateProjectionMatrix(); dirty = true;
+}
+function loop(){
+	raf = requestAnimationFrame(loop);
+	const now = performance.now();
+	if(cam.anim){
+		const a = cam.anim, k = Math.min(1, (now - a.t0)/a.ms), e = k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2;
+		cam.az = a.az0 + (a.az - a.az0)*e; cam.el = a.el0 + (a.el - a.el0)*e; cam.r = a.r0 + (a.r - a.r0)*e;
+		cam.tx = a.tx0 + (a.tx - a.tx0)*e; cam.ty = a.ty0 + (a.ty - a.ty0)*e; cam.tz = a.tz0 + (a.tz - a.tz0)*e;
+		if(k>=1) cam.anim = null; place();
+	}
+	for(let i=drips.length-1; i>=0; i--){
+		const d = drips[i]; if(now < d.t) continue;
+		d.v += 0.055; d.m.position.y -= d.v; d.m.material.opacity -= 0.02;
+		if(d.m.position.y < 0 || d.m.material.opacity <= 0){ root.remove(d.m); d.m.geometry.dispose(); d.m.material.dispose(); drips.splice(i,1); }
+		dirty = true;
+	}
+	if(dirty){ renderer.render(scene, camera); dirty = false; }
+}
+
+/* the ring's layout() already sizes #housebox; follow it */
+const _layout = layout;
+layout = function(){ _layout(); resize3d(); };
+window.removeEventListener('resize', _layout);
+window.addEventListener('resize', layout);
+
+buildRing();
+if(window.THREE){ scene3d(); redraw(); }
+else { holder.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;color:#9a9789;font-size:13px;line-height:1.5">The 3D restaurant needs WebGL, and this browser will not start it.<br><br><a style="color:#d4a24c" href="../tenant/index.html">Open the flat version instead →</a></div>'; }
+score();
+</script>
