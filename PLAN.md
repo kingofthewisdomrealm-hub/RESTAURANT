@@ -351,6 +351,29 @@ Typography, since the old tiles were unreadable: the **`z` number is 36 px serif
 **STEP number 21 px** in a dark pill (25 px / 15 px on a phone). The test asserts both
 sizes, so a future restyle cannot quietly shrink them again.
 
+### The deck is a real stack (Sep 7, *"make it 3d"*)
+CSS 3D, no library. `.dwrap` holds the perspective; `.d3` inside it is the `preserve-3d`
+scene containing three things: `#dstack` (the card backs), `#dedge` (the top card's own
+thickness, painted in that card's family colour) and the card face itself.
+- **The stack thins as you play.** `drawStack(left)` renders one back per ~5 cards
+  remaining, each pushed further back in Z with a small offset and a darker `brightness()`.
+  45 left = 9 backs; 5 left = 1; empty = none, and the edge slab is hidden.
+- **The deck tilts toward the pointer** (`rotateX 7±7.5°, rotateY −9±10°`) and settles back
+  to rest on leave. A `.gloss` layer sweeps with it, its angle driven by a `--ga` CSS var.
+- **A placed card flies into the building.** `flyCard()` clones the outgoing face into a
+  fixed `.flycard` and animates it to the centre of the model box with WAAPI, then removes
+  it. `renderDeck._prev` holds the last face and its rect so the outgoing card still exists
+  to animate. Riffling deals sideways (`renderDeck._dir`), a fresh card deals up from the
+  stack.
+- **`prefers-reduced-motion` turns all of it off** — the deck is static and everything still
+  works.
+
+🚨 **Two things this cost.** The card leans down and right, so `.dwrap` needs
+`margin:6px 16px 24px 2px` or the tilted face sits on the counter. And `flyCard` must cap
+itself (`> 3 live → drop the oldest`) and bail in ring mode: driving the game fast — a
+script, or a very quick player — otherwise spawns one flying card per placement. A test
+asserts the peak never exceeds 4 and that none are left in the DOM.
+
 ### Two traps this cost
 1. **`.blk` was already taken.** The peek card's info blocks use `.blk`; the new card's link
    mark reused the name and inherited a border and a dark background — it rendered as a grey

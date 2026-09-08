@@ -31,6 +31,9 @@ Card 19 of 45
 Step 5 of 10 · 27 left
 ```
 
+The deck is a real stack: it has thickness, it thins as you play it down, it tilts toward
+your pointer, and a card you place flies out of your hand into the building.
+
 Every card is **drawn**, not lettered: the welded duct shows weld beads, the screwed one
 shows screw heads, the missing make-up air shows an empty dashed box. The card number and
 the step number are the two biggest things on it, readable across a truck cab.
