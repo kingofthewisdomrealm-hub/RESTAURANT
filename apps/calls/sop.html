@@ -1,0 +1,577 @@
+<title>Six Calls Standing Orders</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+:root{
+	--paper:#FAFAFB;
+	--card:#FFFFFF;
+	--panel:#F1F3F8;
+	--ink:#12182B;
+	--slate:#4E566B;
+	--faint:#858BA0;
+	--rule:#DFE2EA;
+	--hair:#EAECF2;
+	--sand:#C4A574;
+	--sandInk:#8A6634;
+	--alarm:#9B3A2C;
+	--alarmBg:#FBF1EF;
+	--reverse:#12182B;
+	--reverseInk:#E9E7E2;
+	--serif:'Fraunces','Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+	--sans:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+	--mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+	:root:not([data-theme="light"]){
+		--paper:#0D1120; --card:#141A2B; --panel:#171E31; --ink:#E9E7E2; --slate:#A8AFC2;
+		--faint:#7B8299; --rule:#283047; --hair:#1E263A; --sandInk:#D3B583;
+		--alarm:#E08573; --alarmBg:#2A1A18; --reverse:#1D2538; --reverseInk:#F2F0EA;
+	}
+}
+:root[data-theme="dark"]{
+	--paper:#0D1120; --card:#141A2B; --panel:#171E31; --ink:#E9E7E2; --slate:#A8AFC2;
+	--faint:#7B8299; --rule:#283047; --hair:#1E263A; --sandInk:#D3B583;
+	--alarm:#E08573; --alarmBg:#2A1A18; --reverse:#1D2538; --reverseInk:#F2F0EA;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;
+	-webkit-font-smoothing:antialiased}
+.wrap{max-width:50rem;margin:0 auto;padding-block:40px 64px;padding-left:20px;padding-right:20px;
+	display:flex;flex-direction:column;gap:40px}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;align-items:flex-start;gap:12px;padding-bottom:16px;border-bottom:2px solid var(--ink)}
+.mast svg{width:26px;height:auto;flex:none;margin-top:3px}
+.mast .who{font-family:var(--serif);font-size:16px;font-weight:600;line-height:1.2}
+.mast .who small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+	color:var(--faint);font-weight:400;margin-top:4px}
+.mast .rev{margin-left:auto;text-align:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+	text-transform:uppercase;color:var(--faint);line-height:1.7}
+.mast .rev b{color:var(--slate);font-weight:400}
+
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,5vw,42px);line-height:1.05;margin:0;
+	letter-spacing:-.015em;text-wrap:balance}
+.sub{font-size:17px;color:var(--slate);margin:10px 0 0;max-width:62ch}
+.sub b{color:var(--ink);font-weight:600}
+
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--sandInk);
+	margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--sand);opacity:.5}
+
+/* ---------- the principle ---------- */
+.principle{background:var(--panel);border-left:3px solid var(--sand);padding:18px 20px;display:flex;
+	flex-direction:column;gap:10px}
+.principle p{margin:0;font-size:15.5px;color:var(--slate)}
+.principle p:first-child{font-family:var(--serif);font-size:19px;line-height:1.35;color:var(--ink);font-weight:400;
+	text-wrap:balance}
+.principle b{color:var(--ink);font-weight:600}
+
+/* ---------- the index ---------- */
+.index{border-top:1px solid var(--rule)}
+.irow{display:grid;grid-template-columns:2.1rem 1fr 7.5rem 6.5rem;gap:14px;align-items:baseline;
+	padding:11px 2px;border-bottom:1px solid var(--hair);text-decoration:none;color:inherit}
+.irow:hover{background:var(--panel)}
+.irow .n{font-family:var(--mono);font-size:12px;color:var(--sandInk);font-variant-numeric:tabular-nums}
+.irow .t{font-weight:600;font-size:15.5px}
+.irow .w,.irow .o{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+@media (max-width:620px){
+	.irow{grid-template-columns:2.1rem 1fr;gap:4px 12px}
+	.irow .w,.irow .o{grid-column:2;font-size:10px}
+}
+
+/* ---------- a procedure ---------- */
+.sop{display:grid;grid-template-columns:3.4rem 1fr;gap:0 18px;scroll-margin-top:16px}
+.sop .rail{font-family:var(--serif);font-size:34px;font-weight:600;line-height:.9;color:var(--sand);
+	font-variant-numeric:tabular-nums;padding-top:2px}
+.sop .rail span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--faint);
+	margin-top:6px;font-weight:400}
+.body{display:flex;flex-direction:column;gap:16px;min-width:0}
+.sop h2{font-family:var(--serif);font-weight:600;font-size:25px;line-height:1.15;margin:0;letter-spacing:-.01em;
+	text-wrap:balance}
+
+/* the decision — the one bold move */
+.decision{background:var(--reverse);color:var(--reverseInk);padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.decision .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sand)}
+.decision p{margin:0;font-family:var(--serif);font-size:19.5px;line-height:1.35;font-weight:400;text-wrap:balance}
+.decision p em{font-style:normal;border-bottom:2px solid var(--sand);padding-bottom:1px}
+
+.meta{display:flex;flex-wrap:wrap;gap:8px 26px;font-size:14px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.meta dd{margin:0;color:var(--ink);font-weight:600}
+
+h3{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--slate);
+	margin:0 0 8px;font-weight:400}
+.steps{margin:0;padding-left:1.35em;display:flex;flex-direction:column;gap:7px;font-size:15.5px}
+.steps li{padding-left:2px}
+.steps b{font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* say this */
+.script{font-family:var(--mono);font-size:13.5px;line-height:1.62;background:var(--card);border:1px solid var(--rule);
+	border-left:3px solid var(--sand);padding:14px 16px;color:var(--slate);white-space:pre-wrap;overflow-x:auto}
+.script b{color:var(--ink);font-weight:600}
+
+.record{font-size:15px;color:var(--slate)}
+.record b{color:var(--ink);font-weight:600}
+
+.cost{background:var(--alarmBg);border:1px solid var(--alarm);padding:13px 16px;display:flex;gap:13px;align-items:baseline}
+.cost .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--alarm);
+	white-space:nowrap;flex:none;padding-top:2px}
+.cost p{margin:0;font-size:15px;color:var(--ink)}
+.cost b{color:var(--alarm);font-weight:700}
+
+.src{font-size:12.5px;color:var(--faint);line-height:1.5;border-top:1px solid var(--hair);padding-top:10px}
+.src b{color:var(--slate);font-weight:600}
+
+.permit{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+	text-transform:uppercase;color:var(--sandInk);border:1px dashed var(--sand);padding:3px 8px;width:max-content}
+
+@media (max-width:620px){
+	.sop{grid-template-columns:1fr;gap:10px}
+	.sop .rail{font-size:26px;display:flex;align-items:baseline;gap:10px}
+	.sop .rail span{margin:0}
+	.decision p{font-size:17.5px}
+	.sop h2{font-size:21px}
+}
+
+/* ---------- the field card ---------- */
+.field{border:2px solid var(--ink);padding:22px 22px 20px;display:flex;flex-direction:column;gap:16px;background:var(--card)}
+.field .fh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:12px}
+.field .fh h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:0}
+.field .fh span{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+	margin-left:auto}
+.fline{display:grid;grid-template-columns:2rem 1fr;gap:12px;align-items:baseline;padding-bottom:11px;
+	border-bottom:1px solid var(--hair)}
+.fline:last-of-type{border-bottom:0;padding-bottom:0}
+.fline .fn{font-family:var(--mono);font-size:11.5px;color:var(--sandInk);font-variant-numeric:tabular-nums}
+.fline strong{display:block;font-family:var(--serif);font-size:16.5px;font-weight:600;line-height:1.3;margin-bottom:3px}
+.fline em{font-style:normal;display:block;font-size:13.5px;color:var(--slate)}
+
+footer{border-top:1px solid var(--rule);padding-top:16px;font-size:12.5px;color:var(--faint);line-height:1.6}
+footer b{color:var(--slate);font-weight:600}
+footer a{color:var(--sandInk)}
+a:focus-visible,.irow:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
+
+@media print{
+	:root{--paper:#fff;--card:#fff;--panel:#f4f4f6;--reverse:#12182B;--reverseInk:#fff}
+	body{font-size:11pt}
+	.wrap{max-width:none;padding:0;gap:26px}
+	.sop{break-inside:avoid;page-break-inside:avoid}
+	.field{break-before:page;page-break-before:always}
+	.irow:hover{background:none}
+}
+</style>
+
+<div class="wrap">
+
+	<header class="mast">
+		<svg viewBox="0 0 147 119" aria-hidden="true"><path d="M11,116 L2,55 L45,66 L73,3 L101,66 L145,55 L136,116 Z"
+			fill="none" stroke="#C4A574" stroke-width="8" stroke-linejoin="round"/></svg>
+		<div class="who">Covenant Builders<small>Vero Beach, FL &middot; CBC1253676</small></div>
+		<div class="rev">SOP&nbsp;CB&#8209;R01<br><b>Rev 1 &middot; 11 Sep 2026</b></div>
+	</header>
+
+	<section>
+		<h1>Six Calls Standing Orders</h1>
+		<p class="sub">Restaurant build&#8209;out, commercial tenant space. Six questions come up on every one of these
+		jobs that <b>no code book answers</b>. This document answers them once, for everybody, so nobody on a Covenant
+		job has to make the call alone at seven in the morning.</p>
+	</section>
+
+	<section>
+		<p class="eyebrow">The rule behind all six</p>
+		<div class="principle">
+			<p>Every one of these is a question somebody else has to answer &mdash; and every one of them gets cheaper
+			the earlier you ask it.</p>
+			<p>Four are a phone call. Two are arithmetic you can do at a desk. <b>None of them is a field decision.</b>
+			Ask, get the answer in writing, and write it on the permit card where the next man can read it.</p>
+			<p>If you find yourself deciding one of these six on site, you are already behind. Stop and call the office.</p>
+		</div>
+	</section>
+
+	<section>
+		<p class="eyebrow">The six, in job order</p>
+		<nav class="index">
+			<a class="irow" href="#sop1"><span class="n">01</span><span class="t">The seat count</span><span class="w">Before permit</span><span class="o">PM</span></a>
+			<a class="irow" href="#sop2"><span class="n">02</span><span class="t">The capacity charge</span><span class="w">Before the lease</span><span class="o">Estimator</span></a>
+			<a class="irow" href="#sop3"><span class="n">03</span><span class="t">The interceptor size</span><span class="w">Before the dig</span><span class="o">PM + plumber</span></a>
+			<a class="irow" href="#sop4"><span class="n">04</span><span class="t">Who accepts it</span><span class="w">At permit pickup</span><span class="o">PM</span></a>
+			<a class="irow" href="#sop5"><span class="n">05</span><span class="t">The sprinkler question</span><span class="w">Before demo</span><span class="o">PM</span></a>
+			<a class="irow" href="#sop6"><span class="n">06</span><span class="t">The call order</span><span class="w">At permit pickup</span><span class="o">PM + super</span></a>
+		</nav>
+	</section>
+
+	<!-- ============================================================ 1 -->
+	<article class="sop" id="sop1">
+		<div class="rail">01<span>SOP</span></div>
+		<div class="body">
+			<h2>The seat count</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>We do not submit a seat count until the plan reviewer has told us <em>in writing</em> what that count
+				triggers &mdash; and we price what it triggers into the bid before the owner signs.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>Project Manager</dd></div>
+				<div><dt>When</dt><dd>Before drawings go in for permit</dd></div>
+				<div><dt>Ends up</dt><dd>On the cover sheet</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>Measure the <b>net dining area</b> and the <b>net kitchen area</b> off the lease exhibit.</li>
+					<li>Divide dining by <span class="num">15</span> sq ft per person. Divide kitchen by
+						<span class="num">200</span>. Add them. That is your occupant load.</li>
+					<li>If the total is <b><span class="num">50</span> or more</b>, the space is Group A&#8209;2 &mdash;
+						assembly. That buys two exits, doors that swing out, and panic hardware on the exit doors.
+						Price all three now.</li>
+					<li>Email the plan reviewer the number and ask him to confirm the classification and what it triggers.</li>
+					<li><b>Order the panic hardware the day he confirms.</b> Panic devices run about six weeks.</li>
+					<li>If the owner later wants more seats, this SOP runs again from step&nbsp;1. Seats are not a
+						finish selection.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; to the plan reviewer</h3>
+				<div class="script">&ldquo;I have a retail bay going to a restaurant. My net dining is about <b>1,150
+square feet</b> and the kitchen is about <b>1,000</b>. That puts me at roughly
+<b>81 occupants</b> at 15 and 200. I read that as Group A&#8209;2. Can you confirm the
+classification, and confirm whether I&rsquo;m into two exits and panic hardware
+at that count? I&rsquo;d like it in an email so I can order hardware.&rdquo;</div>
+			</div>
+
+			<p class="record"><b>Record it:</b> the reviewer&rsquo;s reply in the project folder, the occupant load on the
+			cover sheet, and the hardware on the buyout log the same day.</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>The fire marshal does the arithmetic for you at his final. That is <b>about six weeks</b> of a
+				finished building you cannot get a CO on, while a panic device ships.</p></div>
+
+			<p class="src"><b>Source:</b> FBC / IBC Table 1004.5 &mdash; assembly unconcentrated (tables and chairs)
+			15&nbsp;net, commercial kitchens 200&nbsp;gross. IBC 303.1.1 &mdash; assembly classification at 50. IBC
+			1010.2.9 &mdash; panic hardware for Group A at occupant load 50 or more. <b>&#10003; Robust.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ 2 -->
+	<article class="sop" id="sop2">
+		<div class="rail">02<span>SOP</span></div>
+		<div class="body">
+			<h2>The capacity charge</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>No client of ours signs a restaurant lease until Indian River County Utilities has given us
+				<em>the ERU count and the charge, in writing</em>. If the lease is already signed, we put the number in
+				front of them the same day we are engaged.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>Estimator, PM copied</dd></div>
+				<div><dt>When</dt><dd>Before the lease is executed</dd></div>
+				<div><dt>Ends up</dt><dd>Its own bid line</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>Call Utilities with the address, the proposed use, the seat count and the fixture count.</li>
+					<li>Ask for <b>two numbers</b>: how many ERUs they will assign this restaurant, and the charge per
+						ERU. Ask for both in writing.</li>
+					<li>Multiply. Then add the service connection fees and the meter install.</li>
+					<li>Put that total in the bid as <b>its own line</b>. It does not go in allowances and it does not
+						go in general conditions.</li>
+					<li>If the lease is already signed, send it to the client in writing today. It is still their money
+						&mdash; but it is no longer a surprise, and that is the whole difference.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; to Indian River County Utilities</h3>
+				<div class="script">&ldquo;I&rsquo;m pricing a change of use at <b>[address]</b> &mdash; retail going to a
+restaurant, about <b>80 seats</b>. I need two things in writing before my client
+signs a lease. First, how many ERUs will you assign that use. Second, your
+current water and sewer impact fee per ERU, plus the service connection and
+meter fees. Can you email that to me?&rdquo;</div>
+			</div>
+
+			<p class="record"><b>Record it:</b> the utility&rsquo;s written reply in the project folder, and the line item
+			in the estimate with the reply attached.</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>The published fee is <b>$4,096 a connection</b> &mdash; $1,300 water, $2,796 sewer. A shoe store is
+				about one connection. A restaurant is not. Six more is <b>$24,576</b>, and it lands the day you go to
+				set the meter, with no budget line behind it.</p></div>
+
+			<p class="src"><b>Source:</b> Indian River County Department of Utility Services, water and sewer rate
+			schedule &mdash; impact fees effective 1 October 2022: water $1,300.00/ERU, sewer $2,796.00/ERU; service
+			connection water $2,785, sewer $2,895. <b>~ Range &mdash; confirm the current schedule; these figures are
+			three years old, and the ERU count for a non&#8209;residential conversion is not published anywhere. That is
+			why this is a phone call.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ 3 -->
+	<article class="sop" id="sop3">
+		<div class="rail">03<span>SOP</span></div>
+		<div class="body">
+			<h2>The interceptor size</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>We size the grease interceptor from a <em>counted fixture unit schedule</em>, confirm it with the
+				utility, and set it <em>outside</em> &mdash; before anybody breaks ground. Never from memory. Never under
+				a sink without the authority&rsquo;s written approval.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>Plumbing sub, verified by the PM</dd></div>
+				<div><dt>When</dt><dd>After underground passes, before the excavator</dd></div>
+				<div><dt>Ends up</dt><dd>Project folder</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>Have the plumber produce a <b>written drainage fixture unit count</b> for everything on the
+						grease line &mdash; three&#8209;compartment sink, prep sink, mop sink, dishmachine, every floor
+						sink under the cook line.</li>
+					<li>Read the gravity table: <span class="num">8</span>&nbsp;DFU takes
+						<span class="num">500</span>&nbsp;gal &middot; <span class="num">21</span> takes
+						<span class="num">750</span> &middot; <span class="num">35</span> takes
+						<span class="num">1,000</span> &middot; <span class="num">90</span> takes
+						<span class="num">1,250</span>.</li>
+					<li>Call the utility with your count and the size it lands on. Ask them to confirm, and ask
+						<b>whether their ordinance amends it</b>. Theirs is the number that gets inspected.</li>
+					<li>Set it outside: two chambers, sample point downstream, a traffic&#8209;rated lid anywhere a truck
+						can drive, and clear space for a pump hose to reach.</li>
+					<li>An under&#8209;sink unit goes in <b>only</b> with written approval from the authority, and only
+						if the flow works &mdash; those run about 20 to 50 gallons a minute and a full kitchen walks
+						straight past that.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; to the utility</h3>
+				<div class="script">&ldquo;I&rsquo;ve got a full&#8209;service kitchen at <b>[address]</b>. My plumber counted
+<b>[n] drainage fixture units</b> on the grease line, which puts me on the
+gravity table at <b>[size] gallons</b>. Two questions: does your FOG ordinance
+amend that number, and do you want it at that size or larger? And can you
+confirm your lid and sample port requirements for a traffic area?&rdquo;</div>
+			</div>
+
+			<p class="record"><b>Record it:</b> the DFU schedule and the utility&rsquo;s confirmation, both in the project
+			folder, before the excavator mobilises.</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>Guess low and the utility rejects it. That is <b>about three weeks and $9,000</b> &mdash; you dig up a
+				tank you already paid to set, through asphalt you already paid to patch.</p></div>
+
+			<p class="src"><b>Source:</b> FBC Plumbing / PDI gravity interceptor sizing by drainage fixture units;
+			gravity units installed outside the building unless the authority approves otherwise; hydromechanical units
+			sized by flow, commonly 20&ndash;50&nbsp;gpm. <b>&#10003; Robust as a method &mdash; the local FOG ordinance
+			still controls the final number.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ 4 -->
+	<article class="sop" id="sop4">
+		<div class="rail">04<span>SOP</span></div>
+		<div class="body">
+			<h2>Who accepts it</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>We establish the acceptance sequence for the interceptor and the backflow <em>at permit pickup</em>,
+				in two phone calls &mdash; and we write both answers on the permit card. Not the week we need the meter.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>Project Manager</dd></div>
+				<div><dt>When</dt><dd>The week the permit is issued</dd></div>
+				<div><dt>Ends up</dt><dd>On the permit card, in ink</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>Call Indian River County Utilities. Ask <b>who accepts the interceptor</b> and <b>who files the
+						backflow certificate</b>.</li>
+					<li>Call the plumbing inspector. Ask whether it is <b>its own inspection or rolls into site
+						plumbing</b>, and what has to be complete before he will come out.</li>
+					<li>Write both answers on the permit card, in ink, where the foreman actually reads it.</li>
+					<li><b>Book the licensed backflow tester before the device is installed</b>, not after. The
+						certificate is what releases the meter, and the tester is not always available this week.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; two calls, same morning</h3>
+				<div class="script">To Utilities:
+&ldquo;I&rsquo;m setting a grease interceptor and an RPZ backflow at <b>[address]</b>.
+Who on your side accepts the interceptor, and where does the backflow
+certificate get filed? What do you need from me before you&rsquo;ll release
+the meter?&rdquo;
+
+To the plumbing inspector:
+&ldquo;Is the interceptor and backflow its own inspection on a commercial job,
+or does it roll into site plumbing? And what do you need complete before
+you come out?&rdquo;</div>
+			</div>
+
+			<p class="permit">&rarr; Permit card</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>Assume the building inspector covers it and he does not release your water meter &mdash; the utility
+				does. No meter, no water, no finish inspections. That is <b>about a month</b> of sitting on a
+				finished&#8209;out building, dry, paying rent.</p></div>
+
+			<p class="src"><b>Source: none published &mdash; county, state or code.</b> This is the only step in this
+			document with no document behind it, which is exactly why it is a phone call and not a lookup. Confirm it on
+			the first job and write the answer here. <b>&#9672; Model.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ 5 -->
+	<article class="sop" id="sop5">
+		<div class="rail">05<span>SOP</span></div>
+		<div class="body">
+			<h2>The sprinkler question</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>We check <em>all three</em> sprinkler triggers on every commercial job and get the plan
+				reviewer&rsquo;s written confirmation <em>before demolition starts</em>. The building&rsquo;s history is
+				not evidence.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>Project Manager</dd></div>
+				<div><dt>When</dt><dd>With the permit application, before demo</dd></div>
+				<div><dt>Ends up</dt><dd>On the cover sheet</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>Calculate the <b>fire area</b> in square feet.</li>
+					<li>Calculate the <b>occupant load</b> &mdash; SOP&nbsp;01 gives you the number.</li>
+					<li>Confirm whether the space sits on the <b>level of exit discharge</b>.</li>
+					<li>A Group A&#8209;2 fire area needs sprinklers if <b>any one</b> of these is true: it exceeds
+						<span class="num">5,000</span> sq ft &middot; the occupant load is
+						<span class="num">100</span> or more &middot; it is on a floor other than the level of exit
+						discharge.</li>
+					<li>Send all three numbers to the plan reviewer and ask him to confirm, in writing, which &mdash; if
+						any &mdash; applies.</li>
+					<li><b>If one trips, stop and re&#8209;price.</b> This is no longer a build&#8209;out and it should
+						not be bid as one.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; to the plan reviewer</h3>
+				<div class="script">&ldquo;Group A&#8209;2 tenant space at <b>[address]</b>. Fire area is <b>[n] square
+feet</b>, occupant load is <b>[n]</b>, and it&rsquo;s on the level of exit discharge.
+By 903.2.1.2 I read that as clearing all three triggers &mdash; no sprinkler
+required. Can you confirm that in writing before I start demo?&rdquo;</div>
+			</div>
+
+			<p class="record"><b>Record it:</b> all three numbers and the reviewer&rsquo;s reply on the cover sheet, so the
+			fire marshal can see the arithmetic at his final without taking anybody&rsquo;s word for it.</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>Finding out at the fire marshal final that the job needed a sprinkler system is <b>not a change
+				order</b>. It is a different project, on a lease that has been running rent the whole time.</p></div>
+
+			<p class="src"><b>Source:</b> FBC Building 8th Ed. / IBC 903.2.1.2 &mdash; Group A&#8209;2: fire area
+			exceeding 5,000 sq ft, occupant load of 100 or more, or a fire area located on a floor other than the level
+			of exit discharge. <b>&#10003; Robust.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ 6 -->
+	<article class="sop" id="sop6">
+		<div class="rail">06<span>SOP</span></div>
+		<div class="body">
+			<h2>The call order</h2>
+			<div class="decision">
+				<span class="lab">Standing order</span>
+				<p>We get the commercial inspection sequence <em>from the building department, at the counter</em>, and
+				write it on the permit card. <em>We do not use the published priority sheet.</em> It is residential.</p>
+			</div>
+			<dl class="meta">
+				<div><dt>Owner</dt><dd>PM, then the superintendent</dd></div>
+				<div><dt>When</dt><dd>Permit pickup</dd></div>
+				<div><dt>Ends up</dt><dd>On the permit card, in ink</dd></div>
+			</dl>
+
+			<div>
+				<h3>Do this</h3>
+				<ol class="steps">
+					<li>At the counter, ask for the inspection sequence for a <b>commercial interior alteration</b>
+						&mdash; which inspection, in what order, and which ones are prerequisites for which.</li>
+					<li>Write it on the permit card in the order it will actually happen on this job.</li>
+					<li>Brief the superintendent before the first trade mobilises. He is the one booking them.</li>
+					<li><b>Do not hand anybody the 2019 BRCOM sheet.</b> It is a house. If it is already in the job
+						binder, take it out.</li>
+				</ol>
+			</div>
+
+			<div>
+				<h3>Say this &mdash; at the permit counter</h3>
+				<div class="script">&ldquo;This is a commercial interior alteration &mdash; restaurant build&#8209;out in a
+leased bay. What&rsquo;s your inspection sequence for this permit type? Which
+ones are priority&nbsp;1, and what has to be resulted and passed before I can
+book the next tier? I want to write it on the card so my super books them
+in the right order.&rdquo;</div>
+			</div>
+
+			<p class="permit">&rarr; Permit card</p>
+
+			<div class="cost"><span class="tag">Skip it</span>
+				<p>The published sheet is a house &mdash; footing, tie beam, truss bracing, roof sheathing, strapping,
+				dry&#8209;in. And the scheduling system <b>enforces priority</b>: it will not let you book a priority 2
+				until every priority 1 is resulted and passed. Your calls do not get argued with. <b>They get
+				declined</b> &mdash; about two weeks of them, with trades standing by.</p></div>
+
+			<p class="src"><b>Source:</b> Indian River County / City of Vero Beach Building Division,
+			<b>2019_BRCOM_Scheduling</b> &mdash; headed &ldquo;BRCOM RESIDENTIAL COMBINATION NEW CONSTRUCTION&rdquo;, and
+			it states the system will not allow scheduling a priority 2 until all priority 1s are resulted and passed.
+			No commercial equivalent found published. <b>&#10003; Robust.</b></p>
+		</div>
+	</article>
+
+	<!-- ============================================================ field card -->
+	<section class="field">
+		<div class="fh">
+			<h2>Truck card</h2>
+			<span>Print this page &middot; keep it in the binder</span>
+		</div>
+		<div class="fline"><span class="fn">01</span><div>
+			<strong>Nobody draws a seat count until the reviewer says what it triggers.</strong>
+			<em>Dining &divide; 15, kitchen &divide; 200. Fifty or more is assembly &mdash; two exits, out&#8209;swing doors, panic hardware.</em></div></div>
+		<div class="fline"><span class="fn">02</span><div>
+			<strong>Nobody signs a lease until the utility puts the ERU count in writing.</strong>
+			<em>$4,096 a connection. A store is one. A restaurant is not.</em></div></div>
+		<div class="fline"><span class="fn">03</span><div>
+			<strong>Count the fixture units, read the table, then call the utility.</strong>
+			<em>8&rarr;500, 21&rarr;750, 35&rarr;1,000, 90&rarr;1,250 gal. Outside, unless they say otherwise in writing.</em></div></div>
+		<div class="fline"><span class="fn">04</span><div>
+			<strong>Find out who releases the meter at permit pickup, not when you need water.</strong>
+			<em>Two calls: Utilities, then the plumbing inspector. Book the backflow tester early.</em></div></div>
+		<div class="fline"><span class="fn">05</span><div>
+			<strong>Check all three sprinkler triggers before demo, and get it in writing.</strong>
+			<em>Over 5,000 sq ft, 100 or more occupants, or not on the level of exit discharge. Any one of them.</em></div></div>
+		<div class="fline"><span class="fn">06</span><div>
+			<strong>Get the commercial inspection order at the counter and write it on the card.</strong>
+			<em>The published sheet is residential. The system refuses a priority 2 until the priority 1s pass.</em></div></div>
+	</section>
+
+	<footer>
+		<b>Covenant Builders &middot; Vero Beach, FL &middot; CBC1253676 &middot; (772) 473&#8209;7115.</b>
+		Standing orders for a commercial restaurant build&#8209;out. Every figure is sourced on its procedure and graded
+		&#10003; Robust, ~ Range or &#9672; Model &mdash; a Range figure needs confirming against the current schedule
+		and a Model figure has no published source at all. This is Covenant&rsquo;s internal procedure, not a permit and
+		not a code book; where it disagrees with the authority having jurisdiction, the authority wins and this document
+		gets revised. Drawn from the RESTAURANT training model, <b>The Six Calls</b>.
+	</footer>
+
+</div>

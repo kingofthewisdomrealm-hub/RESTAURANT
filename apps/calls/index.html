@@ -246,6 +246,8 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 	border-radius:10px;padding:18px 20px 20px;box-shadow:0 30px 90px rgba(0,0,0,.75)}
 #done .donewrap h2{font-size:27px;margin:2px 0 6px}
 #done .donewrap p{max-width:none;margin:0 0 14px}
+#done .sopline{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:12px;margin:2px 0 14px}
+#done .sopline a{color:var(--gold)}
 @media (max-width:760px){ #done .donewrap{padding:14px 13px 16px} #done .donewrap h2{font-size:20px} }
 </style>
 
@@ -297,7 +299,7 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 	<div class="corner" id="tr"><div id="stamps"></div></div>
 	<div class="corner" id="bl">
 		<span class="score" id="score">Gates 0/10 &middot; Leaks 0 &middot; Failed gates 0</span>
-		<div style="display:flex;gap:6px"><button class="ghost" id="undo" disabled title="Take the last step back (Ctrl+Z)">&#8630; Reverse</button><button class="ghost" id="reset">Start over</button><button class="ghost" id="showchart">The table</button></div>
+		<div style="display:flex;gap:6px"><button class="ghost" id="undo" disabled title="Take the last step back (Ctrl+Z)">&#8630; Reverse</button><button class="ghost" id="reset">Start over</button><button class="ghost" id="showchart">The table</button><a class="ghost" href="sop.html" target="_blank" rel="noopener" style="text-decoration:none;line-height:1.5">The SOP</a></div>
 	</div>
 	<div class="corner" id="br"><span class="foot">Gates follow the code chain a Florida restaurant actually walks: <a href="https://www2.myfloridalicense.com/hotels-restaurants/licensing/plan-review/" target="_blank" rel="noopener">DBPR plan review</a>, FBC 8th Ed., NFPA 96 and the fire marshal. A Covenant Builders training model &#183; CBC1253676 &#183; not a permit.</span></div>
 </div>
@@ -316,6 +318,8 @@ button.ghost[disabled]{opacity:.32;cursor:not-allowed}
 		<div id="billrows"></div>
 		<div class="billrow tot" id="billtot"></div>
 	</div>
+	<p class="sopline">Covenant&rsquo;s standing answer to all six is written down &mdash;
+		<a href="sop.html" target="_blank" rel="noopener">Six Calls Standing Orders</a>. Nobody on a Covenant job makes these alone.</p>
 	<button class="eat" id="again">Run it again</button></div></div>
 <div id="ghost"></div>
 
