@@ -19,15 +19,32 @@ a.card b em{color:var(--gold);font-style:italic}
 a.card span{color:var(--dim);font-size:14px;line-height:1.45}
 .soon{opacity:.55;border:1px dashed var(--line);border-radius:16px;padding:18px 20px}
 .soon b{display:block;font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:4px}
+header.mast{display:flex;align-items:center;gap:11px;margin:0 0 26px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+header.mast svg{width:26px;height:auto;flex:none}
+header.mast .wm{font-family:var(--serif);font-size:15px;letter-spacing:.02em;line-height:1.15}
+header.mast .wm small{display:block;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;letter-spacing:.2em;
+	text-transform:uppercase;color:#6d6b62;margin-top:3px}
+.tag{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;letter-spacing:.18em;
+	text-transform:uppercase;color:#17140c;background:var(--gold);padding:2px 7px;border-radius:3px;
+	vertical-align:3px;margin-left:8px}
 .note{margin-top:28px;font-size:12px;color:#6d6b62}
 .note a{color:var(--gold)}
 </style>
 </head>
 <body>
 <main>
+	<header class="mast">
+		<svg viewBox="0 0 147 119" aria-hidden="true"><path d="M11,116 L2,55 L45,66 L73,3 L101,66 L145,55 L136,116 Z"
+			fill="none" stroke="#c4a574" stroke-width="7" stroke-linejoin="round"/></svg>
+		<div class="wm">Covenant Builders<small>Vero Beach, FL · CBC1253676</small></div>
+	</header>
 	<h1>RESTAURANT</h1>
 	<p class="lede">A Covenant Builders training model. A restaurant is not a building with a kitchen in it. It is a building the state licenses, the fire marshal signs, and the utility can shut off. Build one by hand, in order, and meet everybody who has to say yes. Training — not a permit.</p>
 	<div class="grid">
+		<a class="card" href="apps/calls/index.html">
+			<b>RESTAURANT <em>The Six Calls</em><span class="tag">Advanced</span></b>
+			<span>Ten gates and six judgment calls the code book does not answer · the seat count, the capacity charge, the interceptor size, who signs it, the sprinklers, and the order you call the inspections. You pick, the job carries on, and the bill finds you later. It ends with an itemised bill of what every call cost you in days and dollars, with the source under each line.</span>
+		</a>
 		<a class="card" href="apps/tenant3d/index.html">
 			<b>RESTAURANT <em>Build-Out 3D</em></b>
 			<span>The same build-out as a real model you can spin. Drag to orbit, scroll to zoom; cutaway is a plane slicing the bay down its length so you can look inside. 45 cards in a deck, dealt in order. Needs WebGL — on a modern phone or laptop, yes.</span>
@@ -36,11 +53,11 @@ a.card span{color:var(--dim);font-size:14px;line-height:1.45}
 			<b>RESTAURANT <em>Build-Out</em></b>
 			<span>The flat version. Section and dining room, no 3D. Same 45 cards, same 10 gates, same three traps — identical rules, runs on anything.</span>
 		</a>
-		<div class="soon"><b>Grease &amp; the utility — next</b><span>The FOG program end to end: sizing, the pump schedule, the sample port, and what happens when the city tests it.</span></div>
+		<div class="soon"><b>Grease &amp; the utility</b><span>The FOG program end to end: sizing, the pump schedule, the sample port, and what happens when the city tests it.</span></div>
 		<div class="soon"><b>Fast casual / food truck</b><span>Same gates, no dining room. Mobile plan review and the commissary rule.</span></div>
 		<div class="soon"><b>Bar conversion</b><span>Occupant load, exiting, and the licence that is not a food licence.</span></div>
 	</div>
-	<p class="note">Gates follow the real chain: DBPR Division of Hotels &amp; Restaurants plan review, FBC 8th Ed., NFPA 96 / UL 300, the fire marshal, then the CO · evidence graded · not a permit · sister projects: <a href="../HOUSE/index.html">HOUSE</a> &middot; <a href="../ROOF/index.html">ROOF</a></p>
+	<p class="note">Gates follow the real chain: DBPR Division of Hotels &amp; Restaurants plan review, FBC 8th Ed., NFPA 96 / UL 300, the fire marshal, then the CO · evidence graded · not a permit · Covenant Builders · (772) 473-7115 · sister projects: <a href="../HOUSE/index.html">HOUSE</a> &middot; <a href="../ROOF/index.html">ROOF</a></p>
 </main>
 </body>
 </html>

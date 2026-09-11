@@ -42,6 +42,29 @@ the step number are the two biggest things on it, readable across a truck cab.
 - **See all 45** puts every card back in the ring around the building, the old way
 - **The table** opens the periodic grid — the same 45 cards as data
 
+## The advanced level — The Six Calls
+
+`apps/calls/` is the harder one. Ten gates again, but six of the twenty-six cards are not parts —
+they are **calls**. A call is a question the code book does not answer, and the game makes you
+answer it: how many seats the owner gets, whether you ask the utility before he signs the lease,
+how big the interceptor is, who actually signs off on it, whether the place needs sprinklers, and
+what order you call the inspections in.
+
+You pick. The job carries on either way. Then the bill finds you — sometimes at the next gate,
+once at the fire marshal final, six gates later.
+
+It ends on an itemised bill: every call, what you chose, the days it cost, the dollars, whether
+that money was **budgeted** or you were **caught out** by it, and the source underneath each line.
+
+Two runs, measured:
+
+| | Gates | Days lost | Spent | Caught out |
+|---|---|---|---|---|
+| Ask everything | 10/10 | 18 | $28,376 | **$0** |
+| Ask nothing | 10/10 | 107 | $37,376 | **$37,376** |
+
+Both restaurants open. The building was never the hard part.
+
 ## The cards give orders
 
 Open a card and the block is headed **What you do**, because that is what it is. Not

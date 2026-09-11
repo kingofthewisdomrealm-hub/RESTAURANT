@@ -469,3 +469,95 @@ Rules held:
 
 Two cards carry an embedded cross-link (`dm` → HOUSE, `ef` → ROOF) built by string
 concatenation. Those were rewritten around the link, never through it.
+
+---
+
+## 15. THE SIX CALLS — the advanced level (`apps/calls/`)
+
+*"Make an advanced version with these choices."* The choices are §7 — the six things this model
+graded ~ or ◈ because no code book answers them. §7 was a to-do list. This level makes it
+playable: **you make the six calls, the job carries on either way, and the bill finds you later.**
+
+### The shape
+26 cards, not 45: **six CALL cards, ten gates, ten build cards** that bundle what the base level
+splits. Ten minutes to play, so the weight sits on the decisions instead of the parts list. Same
+shell, same deck, same flat scene — a build card carries `also:['layer',…]` and `L()` was widened
+to read it, so one card can light five layers and the building still draws itself.
+
+A CALL card does not go into the building. It opens a sheet with two to four options, each one a
+real thing a contractor actually does. You pick. `state.calls[id]` records it, and the consequence
+is **deferred**: `{days, dollars, at}` where `at` is the gate that will hand you the bill. Some land
+at gate 1. One lands at gate 9.
+
+Score row is **Gates · Calls · Days lost · Caught out**. "Caught out" is money that arrived with no
+budget line — a `verdict:'bad'` choice. The same dollars on a `verdict:'good'` choice are
+**budgeted**, not caught out, because that is the entire difference between asking and not asking.
+
+Ends on **THE BILL**: one row per call, what you chose, the days, the dollars, how it landed, why,
+and the source underneath. Reverse un-makes a call (snapshots carry `calls`, `pending`, `bill`,
+`days`, `exposed`, `spend`).
+
+### The measured spread
+- **Ask everything:** 10 gates, **18 days**, $28,376 spent, **$0 caught out.**
+- **Ask nothing:** 10 gates, **107 days**, $37,376 spent, **$37,376 caught out.**
+
+Both open. That is the lesson — the building gets built either way, and the calls are the only
+thing standing between those two numbers.
+
+### What the research pass actually confirmed (§7, answered)
+1. **A-2 sprinklers — CONFIRMED, with numbers.** IBC/FBC 903.2.1.2: a Group A-2 fire area needs
+   sprinklers if it exceeds **5,000 sq ft**, or has an occupant load of **100 or more**, or sits on
+   a floor other than the level of exit discharge. This bay is 2,400 sq ft and about 81 people —
+   it clears the occupant-load trigger by nineteen people.
+2. **Occupant load — CONFIRMED.** Table 1004.5: assembly unconcentrated (tables and chairs)
+   **15 net**, concentrated 7 net, commercial kitchens **200 gross**, business 150 gross.
+   Panic hardware for Group A at **50 or more** (IBC 1010.2.9); assembly classification at 50
+   (IBC 303.1.1). 2,400 sq ft with ~1,150 sq ft of dining lands at about 81 — squarely A-2.
+3. **Interceptor size — CONFIRMED as a method, not a number.** Gravity interceptors size by
+   drainage fixture units: **8 DFU → 500 gal, 21 → 750, 35 → 1,000, 90 → 1,250**, and they go
+   **outside the building unless the AHJ approves otherwise**. Hydromechanical units size by flow,
+   commonly 20–50 gpm. The local FOG ordinance still controls the final number. The old
+   "1,000–1,500 gallons" line was a rule of thumb standing in for a table.
+4. **The capacity charge — CONFIRMED, with real money.** Indian River County Department of Utility
+   Services, impact fees effective **1 October 2022**: water **$1,300.00/ERU**, sewer
+   **$2,796.00/ERU** — **$4,096 a connection** — plus service connection fees around $2,785 water
+   and $2,895 sewer. **The ERU count for a non-residential change of use is not published
+   anywhere.** That is the call: the price is public, the quantity is not.
+   ⚠️ Three years old. Confirm the current schedule.
+5. **The inspection sequence — CONFIRMED, and worse than assumed.** The sheet Indian River County
+   publishes is `2019_BRCOM_Scheduling`, headed **"BRCOM RESIDENTIAL COMBINATION NEW
+   CONSTRUCTION"** — footing, tie beam, truss bracing, roof sheathing, strapping, dry-in. A house.
+   And the document states the system **will not allow scheduling a priority 2 until all
+   priority 1s are resulted and passed**. So calling out of order is not a late call, it is a call
+   the system declines. No commercial equivalent found published.
+6. **Who accepts the interceptor and the backflow — STILL UNANSWERED, on purpose.** No published
+   source: county, state or code. It stays graded ◈ and the card says so out loud: *"This is the
+   only step in this game with no published source; the answer lives in somebody's head until you
+   ask for it."* That honesty is the point — a training model that pretends to know is worse than
+   one that names its own gap.
+
+### 🚨 Traps this level cost
+1. **CSS inserted mid-stylesheet loses to the original rules.** The bill panel and its `z-index`
+   went into the middle of the sheet, so `#done{z-index:45}` and `#done p{max-width:44ch}` further
+   down kept winning — a flying card rendered *over* the bill and the intro paragraph stayed 44
+   characters wide. **Overrides go at the END of the stylesheet, or carry higher specificity.**
+   Nothing about the rule was wrong; it was in the wrong place.
+2. **A dialog must outrank a `.flycard`.** `#callbox` and `#done` now sit above z-index 60, and
+   `flyCard()` bails while either is open.
+3. **The scene's own numbers are the source of truth.** The cards said 1,760 sq ft (44 × 40, from
+   the 3D level) while the flat scene label reads **2,400 SF**. Match the drawing the player is
+   looking at, then redo the arithmetic — the corrected figure made the sprinkler card *better*,
+   because 81 people against a limit of 100 is a sharper lesson than 70 against 100.
+4. **`ART` is keyed by card id**, so a new catalog draws letters instead of pictures. Cards now
+   carry `art:'xx'` to borrow an existing glyph, and `artFor` reads `ART[p.art || p.id]`. A test
+   fails if any card has no drawing. One new glyph was drawn: `call`, a fork in the road.
+
+### Tests
+`testcalls.js` — engine: 26 cards / 6 calls / 10 gates, every card draws, a best-call run and a
+worst-call run both reach ten gates, the bill has six lines with nothing left pending, a best run
+is caught out for $0, a worst run loses more days, Reverse un-makes a call, Start over clears them,
+and the scene lights 40 layers.
+`testcallsui.js` — real pointer and real touch: the deck button opens the sheet, a real click on an
+option records the call and advances the deck, dragging a call card into the building opens the
+sheet, the sheet fits at 1440×900 / 1024×700 / 390×780, and the bill renders six rows inside a
+390 px phone.
